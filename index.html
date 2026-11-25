@@ -1,633 +1,907 @@
 <!doctype html>
-<html lang="es" class="dark">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Simulador interactivo de señales continuas y caracterizacion de sistemas, Fase 1 APS UTN-FICA.">
-  <title>Simulador APS · Fase 1 | UTN-FICA</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: "class" };
-  </script>
-  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <meta name="theme-color" content="#f7f8fc">
+  <meta name="description" content="Laboratorio interactivo de señales continuas, muestreo y caracterización de sistemas. Fase 1 APS UTN-FICA.">
+  <title>Análisis de Señales · Laboratorio UTN-FICA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <style>
-    :root { color-scheme: dark; }
-    html:not(.dark) { color-scheme: light; }
-    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    .panel { display: none; }
-    .panel.active { display: block; }
-    .tab-button[aria-selected="true"] { color: #38bdf8; border-color: #38bdf8; background: rgba(14,165,233,.10); }
-    html:not(.dark) .tab-button[aria-selected="true"] { color: #0369a1; background: #e0f2fe; }
-    input[type="range"] { accent-color: #0ea5e9; }
-    .plot { min-height: 310px; }
-    .math-card .katex-display { overflow-x: auto; overflow-y: hidden; padding: .2rem 0; }
-    .table-scroll { overflow-x: auto; }
-    .control-card { min-width: 0; }
-    html.light body { background: #f8fafc !important; color: #0f172a !important; }
-    html.light header, html.light article, html.light .bg-slate-900,
-    html.light .bg-slate-900\/95 { background-color: #ffffff !important; }
-    html.light .border-slate-800, html.light .border-slate-700 { border-color: #dbe3eb !important; }
-    html.light .text-slate-100, html.light .text-slate-200, html.light .text-slate-300 { color: #1e293b !important; }
-    html.light .text-slate-400, html.light .text-slate-500 { color: #64748b !important; }
-    html.light select { background-color: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
-    html.light .tab-button { color: #475569; }
-    html.light footer { border-color: #dbe3eb; color: #64748b; }
-    @media (max-width: 640px) { .plot { min-height: 270px; } }
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fc;
+      --surface: #ffffff;
+      --surface2: #eef1f8;
+      --text: #172033;
+      --muted: #68738a;
+      --line: #dce2ed;
+      --cont: #2563eb;
+      --disc: #e1306c;
+      --accent: #7c3aed;
+      --ok: #059669;
+      --warn: #d97706;
+      --shadow: 0 16px 42px rgba(27, 39, 67, .075);
+      --nav: rgba(247, 248, 252, .86);
+      --hero-grid: rgba(37, 99, 235, .09);
+      --plot-paper: #ffffff;
+      --plot-bg: #ffffff;
+      --plot-grid: #e5e9f1;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0b0d17;
+      --surface: #141827;
+      --surface2: #1b2032;
+      --text: #ecf0fb;
+      --muted: #9aa5bc;
+      --line: #2a3248;
+      --cont: #60a5fa;
+      --disc: #f472b6;
+      --accent: #a78bfa;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --shadow: 0 18px 48px rgba(0, 0, 0, .24);
+      --nav: rgba(11, 13, 23, .86);
+      --hero-grid: rgba(96, 165, 250, .11);
+      --plot-paper: #141827;
+      --plot-bg: #141827;
+      --plot-grid: #30384d;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 92px; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: "Inter", sans-serif; transition: background .25s, color .25s; }
+    button, select, input { font: inherit; }
+    button, select { color: inherit; }
+    a { color: inherit; text-decoration: none; }
+    .mono, .kicker, .metric-value, table, output, .formula-dynamic { font-family: "JetBrains Mono", monospace; }
+    .display, h1, h2, h3, h4 { font-family: "Space Grotesk", sans-serif; }
+    .wrap { width: min(1160px, calc(100% - 40px)); margin-inline: auto; }
+    .topbar { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line); background: var(--nav); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .nav-inner { width: min(1320px, calc(100% - 32px)); min-height: 66px; margin: auto; display: flex; align-items: center; gap: 24px; }
+    .brand { white-space: nowrap; font: 700 17px "Space Grotesk", sans-serif; letter-spacing: -.04em; }
+    .brand-mark { color: var(--cont); }
+    .nav-links { display: flex; align-items: center; gap: 18px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-links a { flex: 0 0 auto; color: var(--muted); font-size: 12px; font-weight: 600; transition: color .2s; }
+    .nav-links a:hover { color: var(--cont); }
+    .nav-controls { display: flex; align-items: center; gap: 8px; }
+    .select, .icon-button, .button, .quiz-option { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); transition: border-color .2s, transform .2s, background .2s; }
+    .select { min-height: 38px; padding: 0 10px; font-size: 12px; }
+    .icon-button { width: 38px; height: 38px; display: inline-grid; place-items: center; cursor: pointer; font-size: 18px; }
+    .button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; padding: 0 15px; cursor: pointer; font-size: 13px; font-weight: 600; }
+    .button:hover, .icon-button:hover { border-color: var(--cont); transform: translateY(-1px); }
+    .button.primary { border-color: var(--cont); background: var(--cont); color: white; }
+    .button.ghost { background: transparent; }
+    .button.small { min-height: 34px; padding-inline: 11px; font-size: 11px; }
+    .hero { position: relative; min-height: 480px; display: grid; align-items: center; overflow: hidden; border-bottom: 1px solid var(--line); }
+    #waveCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .hero:after { position: absolute; inset: 0; content: ""; pointer-events: none; background: radial-gradient(ellipse at 18% 44%, transparent 0, var(--bg) 78%); opacity: .46; }
+    .hero-content { position: relative; z-index: 1; padding-block: 74px; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 8px 12px; color: var(--muted); font: 500 10px "JetBrains Mono", monospace; box-shadow: var(--shadow); }
+    .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 13%, transparent); }
+    .hero h1 { max-width: 800px; margin: 22px 0 13px; font-size: clamp(42px, 7vw, 78px); line-height: .99; letter-spacing: -.065em; }
+    .hero h1 .c { color: var(--cont); }
+    .hero h1 .d { color: var(--accent); }
+    .hero-copy { max-width: 580px; color: var(--muted); font-size: 16px; line-height: 1.75; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 25px; }
+    .hero-meta { margin-top: 28px; color: var(--muted); font: 11px "JetBrains Mono", monospace; }
+    .kpi-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: -1px auto 28px; }
+    .kpi { min-height: 108px; padding: 17px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+    .kpi-label { color: var(--muted); font: 10px "JetBrains Mono", monospace; text-transform: uppercase; letter-spacing: .06em; }
+    .metric-value { margin-top: 12px; font-size: clamp(17px, 2vw, 23px); font-weight: 600; letter-spacing: -.04em; }
+    .kpi-note { margin-top: 6px; color: var(--muted); font-size: 10px; }
+    .tone-cont { color: var(--cont); }
+    .tone-ok { color: var(--ok); }
+    .tone-warn { color: var(--warn); }
+    .tone-disc { color: var(--disc); }
+    main { padding-bottom: 64px; }
+    .section { padding: 50px 0 10px; scroll-margin-top: 84px; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 19px; }
+    .kicker { margin-bottom: 8px; color: var(--accent); font-size: 11px; font-weight: 600; letter-spacing: .1em; }
+    .section h2 { margin: 0; font-size: clamp(26px, 4vw, 39px); line-height: 1.1; letter-spacing: -.045em; }
+    .section-desc { max-width: 580px; margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+    .grid { display: grid; gap: 16px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card { min-width: 0; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); padding: 19px; box-shadow: var(--shadow); }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 5px; }
+    .card h3 { margin: 0; font-size: 17px; letter-spacing: -.025em; }
+    .card h4 { margin: 0; font-size: 14px; }
+    .eyebrow { color: var(--muted); font: 10px "JetBrains Mono", monospace; }
+    .plot { width: 100%; height: 315px; min-width: 0; }
+    .plot.compact { height: 250px; }
+    .plot.tall { height: 355px; }
+    .formula { min-height: 30px; color: var(--muted); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+    .formula .katex-display { margin: .65em 0; overflow-x: auto; overflow-y: hidden; }
+    .callout { margin-top: 15px; border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; background: var(--surface2); padding: 13px 15px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .callout strong { color: var(--text); }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin: 12px 0; }
+    .control { display: grid; gap: 7px; min-width: 150px; color: var(--muted); font-size: 11px; }
+    .control label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .control select, .control input[type="number"] { width: 100%; min-height: 36px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); padding: 0 9px; color: var(--text); }
+    input[type="range"] { width: 100%; accent-color: var(--cont); cursor: pointer; }
+    input[type="checkbox"] { accent-color: var(--cont); }
+    output { color: var(--text); font-size: 11px; }
+    .table-scroll { width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+    th { background: var(--surface2); color: var(--muted); font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .065em; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .table-caption { margin: 8px 0 0; color: var(--muted); font-size: 10px; }
+    details { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+    details + details { margin-top: 10px; }
+    summary { padding: 13px 15px; cursor: pointer; color: var(--text); font-size: 12px; font-weight: 600; }
+    details > .details-body { padding: 0 15px 15px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 9px; font: 600 10px "JetBrains Mono", monospace; }
+    .badge.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+    .badge.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 13%, transparent); }
+    .badge.disc { color: var(--disc); background: color-mix(in srgb, var(--disc) 13%, transparent); }
+    .math-step { padding: 14px 0; border-top: 1px solid var(--line); }
+    .math-step:first-child { border-top: 0; }
+    .math-step p { margin: 7px 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .quiz-progress { height: 7px; overflow: hidden; border-radius: 99px; background: var(--surface2); }
+    .quiz-progress > span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--cont); transition: width .25s; }
+    .quiz-question { margin: 12px 0 15px; font-size: 17px; line-height: 1.45; }
+    .quiz-options { display: grid; gap: 8px; }
+    .quiz-option { padding: 11px 12px; cursor: pointer; text-align: left; font-size: 12px; }
+    .quiz-option:hover:not(:disabled) { border-color: var(--cont); }
+    .quiz-option.correct { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--surface)); }
+    .quiz-option.incorrect { border-color: var(--disc); background: color-mix(in srgb, var(--disc) 10%, var(--surface)); }
+    .quiz-option:disabled { cursor: default; opacity: .88; }
+    .quiz-feedback { min-height: 22px; margin-top: 11px; color: var(--muted); font-size: 12px; }
+    .quiz-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
+    .footer { margin-top: 64px; border-top: 1px solid var(--line); padding: 23px 0 34px; color: var(--muted); font: 10px "JetBrains Mono", monospace; }
+    .hidden { display: none; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (max-width: 1050px) {
+      .nav-inner { flex-wrap: wrap; gap: 8px 14px; padding-block: 10px; }
+      .nav-links { order: 3; width: 100%; margin: 0; }
+      .nav-controls { margin-left: auto; }
+      .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+      .grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 700px) {
+      .wrap { width: min(100% - 28px, 600px); }
+      .nav-inner { width: calc(100% - 22px); }
+      .nav-controls { gap: 5px; }
+      .nav-controls .select { max-width: 143px; padding-inline: 6px; font-size: 10px; }
+      #resetButton { width: 35px; overflow: hidden; padding-inline: 0; font-size: 0; }
+      #resetButton:after { content: "↺"; font: 17px "Inter", sans-serif; }
+      .nav-links { gap: 15px; padding: 5px 0 2px; }
+      .hero { min-height: 435px; }
+      .hero-content { padding-block: 57px; }
+      .hero-copy { font-size: 14px; }
+      .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .kpi { min-height: 96px; padding: 13px; }
+      .kpi:last-child { grid-column: span 2; }
+      .grid.two, .grid.three { grid-template-columns: 1fr; }
+      .section { padding-top: 38px; }
+      .section-head { display: block; }
+      .section-head > .toolbar { margin-top: 14px; }
+      .card { padding: 14px; border-radius: 15px; }
+      .plot { height: 285px; }
+      .plot.tall { height: 320px; }
+      .plot.compact { height: 230px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *:before, *:after { scroll-behavior: auto; animation-duration: .01ms; transition-duration: .01ms; }
+    }
   </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 transition-colors dark:bg-slate-950 dark:text-slate-100">
-  <header class="border-b border-slate-800 bg-slate-900/95 dark:border-slate-800 dark:bg-slate-900/95">
-    <div class="mx-auto max-w-7xl px-4 py-5 sm:px-6">
-      <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[.18em] text-sky-400">Universidad Técnica del Norte · FICA</p>
-          <h1 class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">Análisis y Procesamiento de Señales</h1>
-          <p class="mt-1 text-sm text-slate-400">Simulador interactivo · Fase 1 · Señales continuas y sistemas</p>
-          <p class="mt-2 text-xs text-slate-500">Docente: Ing. Henry Farinango, MSc. · Ingeniería en Telecomunicaciones</p>
-        </div>
-        <div class="grid gap-3 sm:grid-cols-3 lg:min-w-[550px]">
-          <label class="text-xs font-medium text-slate-400">Modelo de x₂(t)
-            <select id="x2Mode" class="mt-1 block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">
-              <option value="A">Modo A · Rampa acotada</option>
-              <option value="B">Modo B · Triángulo simétrico</option>
-            </select>
-          </label>
-          <label class="text-xs font-medium text-slate-400">Tema
-            <select id="themeMode" class="mt-1 block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">
-              <option value="dark">Modo oscuro · Laboratorio</option>
-              <option value="light">Modo claro · Publicación IEEE</option>
-            </select>
-          </label>
-          <div class="flex items-end">
-            <button id="resetButton" type="button" class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:border-sky-400 hover:text-sky-300">Restablecer parámetros</button>
-          </div>
-        </div>
+<body>
+  <header class="topbar">
+    <div class="nav-inner">
+      <a class="brand" href="#inicio" aria-label="Volver al inicio"><span class="brand-mark">∿</span> x₁(t) · H[x]</a>
+      <nav class="nav-links" aria-label="Navegación por secciones">
+        <a href="#base">01 Base</a><a href="#operaciones">02 Operaciones</a><a href="#transformaciones">03 Transformaciones</a>
+        <a href="#muestreo">04 Muestreo</a><a href="#sistema">05 Sistema</a><a href="#formal">06 Verificación</a>
+      </nav>
+      <div class="nav-controls">
+        <label class="sr-only" for="x2Mode">Modelo de x2</label>
+        <select id="x2Mode" class="select" aria-label="Modelo de x2">
+          <option value="A">Modo A: Rampa</option><option value="B">Modo B: Triángulo</option>
+        </select>
+        <button id="resetButton" class="button small ghost" type="button" title="Restablecer parámetros">Restablecer</button>
+        <button id="themeButton" class="icon-button" type="button" title="Cambiar tema" aria-label="Cambiar tema">◐</button>
       </div>
     </div>
   </header>
 
-  <main class="mx-auto max-w-7xl px-4 py-5 sm:px-6">
-    <section aria-label="Indicadores en tiempo real" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4 dark:border-slate-800 dark:bg-slate-900">
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Error máximo vs. teoría</p>
-        <p id="kpiError" class="mt-2 text-2xl font-bold text-emerald-400">0.0000 %</p>
-        <p class="mt-1 text-xs text-slate-500">Operaciones sobre muestras de 2 ms</p>
-      </article>
-      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4 dark:border-slate-800 dark:bg-slate-900">
-        <label for="activeSignal" class="text-xs font-semibold uppercase tracking-wide text-slate-400">Energía de señal activa</label>
-        <select id="activeSignal" class="mt-1 block w-full rounded bg-transparent text-xs text-slate-300 focus:outline-none">
-          <option value="x1">x₁(t)</option><option value="x2">x₂(t)</option>
-          <option value="sum">x₁(t) + x₂(t)</option><option value="product">x₁(t) · x₂(t)</option>
-        </select>
-        <p id="kpiEnergy" class="mt-1 text-2xl font-bold text-sky-400">1.0000 J</p>
-      </article>
-      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4 dark:border-slate-800 dark:bg-slate-900">
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Linealidad</p>
-        <p class="mt-2"><span class="rounded-full bg-emerald-500/15 px-2.5 py-1 text-sm font-bold text-emerald-400">LINEAL</span></p>
-        <p class="mt-2 text-xs text-slate-500">Residuo por superposición ≈ 0</p>
-      </article>
-      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4 dark:border-slate-800 dark:bg-slate-900">
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Invarianza temporal</p>
-        <p class="mt-2"><span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-sm font-bold text-amber-400">VARIANTE EN EL TIEMPO</span></p>
-        <p id="causalKpi" class="mt-2 text-xs font-semibold text-rose-400">CAUSALIDAD: NO CAUSAL</p>
-      </article>
+  <section id="inicio" class="hero">
+    <canvas id="waveCanvas" aria-hidden="true"></canvas>
+    <div class="wrap hero-content">
+      <div class="pill"><span class="pill-dot"></span> UTN · FICA · Ingeniería en Telecomunicaciones · Fase 1</div>
+      <h1 class="display">Análisis de Señales<br><span class="c">Continuas</span> y <span class="d">Sistemas</span></h1>
+      <p class="hero-copy">Un laboratorio interactivo para explorar señales, operaciones, muestreo y propiedades de sistemas, con evidencia numérica y demostraciones analíticas.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="#base">Comenzar recorrido <span aria-hidden="true">↓</span></a>
+        <a class="button ghost" href="#sistema">Ir al sistema H[x(t)] <span aria-hidden="true">↗</span></a>
+      </div>
+      <p class="hero-meta">ANÁLISIS Y PROCESAMIENTO DE SEÑALES · DOCENTE: ING. HENRY FARINANGO, MSC.</p>
+    </div>
+  </section>
+
+  <main class="wrap">
+    <section class="kpi-strip" aria-label="Indicadores en tiempo real">
+      <article class="kpi"><div class="kpi-label">Error numérico / teoría</div><div id="kpiError" class="metric-value tone-ok">0.0000%</div><div class="kpi-note">Máximo error relativo de energía</div></article>
+      <article class="kpi"><label class="kpi-label" for="activeSignal">Energía de señal activa</label><select id="activeSignal" class="select" style="display:block;margin-top:6px;min-height:27px;padding:0;border:0;background:transparent"><option value="x1">x₁(t)</option><option value="x2">x₂(t)</option><option value="sum">x₁(t)+x₂(t)</option><option value="product">x₁(t)·x₂(t)</option></select><div id="kpiEnergy" class="metric-value tone-cont">1.0000 J</div></article>
+      <article class="kpi"><div class="kpi-label">Linealidad</div><div class="metric-value"><span class="badge ok">LINEAL</span></div><div class="kpi-note">Superposición verificada</div></article>
+      <article class="kpi"><div class="kpi-label">Invarianza temporal</div><div class="metric-value"><span class="badge warn">VARIANTE</span></div><div class="kpi-note">Coeficiente explícito t</div></article>
+      <article class="kpi"><div class="kpi-label">Causalidad para t₀ actual</div><div id="causalKpi" class="metric-value"><span class="badge disc">NO CAUSAL</span></div><div class="kpi-note">Depende del signo de t₀</div></article>
     </section>
 
-    <nav class="mt-6 flex gap-2 overflow-x-auto border-b border-slate-800 pb-2" role="tablist" aria-label="Secciones del simulador">
-      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="true" aria-controls="panel-base" data-tab="panel-base">1 · Señales base</button>
-      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="false" aria-controls="panel-operations" data-tab="panel-operations">2 · Operaciones</button>
-      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="false" aria-controls="panel-transforms" data-tab="panel-transforms">3 · Transformaciones</button>
-      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="false" aria-controls="panel-system" data-tab="panel-system">4 · Sistema H[x]</button>
-      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="false" aria-controls="panel-proof" data-tab="panel-proof">5 · Demostración y rúbrica</button>
-    </nav>
-
-    <section id="panel-base" class="panel active pt-5" role="tabpanel">
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div><h2 class="text-lg font-bold">Señales continuas base</h2><p class="text-sm text-slate-400">Modelos y métricas calculados en el modo global seleccionado.</p></div>
-        <button id="parityButton" type="button" aria-pressed="false" class="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold hover:border-sky-500">Mostrar descomposición par/impar</button>
+    <section id="base" class="section">
+      <div class="section-head"><div><div class="kicker">01 · FUNDAMENTOS</div><h2>Señales base</h2><p class="section-desc">Modelos de referencia, puntos críticos y energía. Cambia el modelo global de x₂ desde la barra superior.</p></div>
+        <div class="toolbar"><button id="parityButton" class="button small ghost" type="button" aria-pressed="false">Mostrar par / impar</button><button id="baseCsv" class="button small" type="button">Descargar CSV</button></div>
       </div>
-      <div class="grid gap-4 xl:grid-cols-2">
-        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
-          <div class="flex items-center justify-between"><h3 class="font-semibold">Pulso rectangular x₁(t)</h3><button class="download-button text-xs text-sky-400 hover:text-sky-300" data-plot="plot-x1">Descargar PNG</button></div>
-          <div id="plot-x1" class="plot" aria-label="Gráfica interactiva del pulso rectangular"></div>
-          <p class="text-sm text-slate-400">\(x_1(t)=\mu(t)-\mu(t-1)\), con soporte \(0\le t\le1\).</p>
-        </article>
-        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
-          <div class="flex items-center justify-between"><h3 class="font-semibold">Señal x₂(t)</h3><button class="download-button text-xs text-sky-400 hover:text-sky-300" data-plot="plot-x2">Descargar PNG</button></div>
-          <div id="plot-x2" class="plot" aria-label="Gráfica interactiva de x2"></div>
-          <p id="x2Formula" class="text-sm text-slate-400"></p>
-        </article>
+      <div class="grid two">
+        <article class="card"><div class="card-head"><div><div class="eyebrow">01A · SEÑAL RECTANGULAR</div><h3>x₁(t)</h3></div><button class="button small ghost download" data-plot="plot-x1">PNG 3×</button></div><div id="plot-x1" class="plot" aria-label="Gráfica x1"></div><div class="formula">\(x_1(t)=\mu(t)-\mu(t-1)\)</div></article>
+        <article class="card"><div class="card-head"><div><div class="eyebrow">01B · MODELO SELECCIONABLE</div><h3>x₂(t)</h3></div><button class="button small ghost download" data-plot="plot-x2">PNG 3×</button></div><div id="plot-x2" class="plot" aria-label="Gráfica x2"></div><div id="x2Formula" class="formula"></div></article>
       </div>
-      <div class="mt-4 grid gap-4 xl:grid-cols-2">
-        <article class="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h3 class="font-semibold">Saltos laterales \(D_{t_0}=X(t_0^+)-X(t_0^-)\)</h3>
-          <div id="discontinuityTable" class="table-scroll mt-3"></div>
-        </article>
-        <article class="rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h3 class="font-semibold">Energía numérica y analítica</h3>
-          <div id="energyTable" class="table-scroll mt-3"></div>
-          <div id="plot-parity" class="plot mt-3 hidden" aria-label="Descomposición par e impar"></div>
-          <button class="download-button mt-2 hidden text-xs text-sky-400 hover:text-sky-300" data-plot="plot-parity">Descargar PNG de paridad</button>
-        </article>
+      <div class="grid two" style="margin-top:16px">
+        <article class="card"><div class="card-head"><div><div class="eyebrow">LECTURA DE FLANCOS</div><h3>Saltos laterales</h3></div></div><div id="discontinuityTable" class="table-scroll"></div><p class="table-caption">\(D_{t_0}=X(t_0^+)-X(t_0^-)\). Las discontinuidades se detectan con muestras laterales separadas por ε = 1 μs.</p></article>
+        <article class="card"><div class="card-head"><div><div class="eyebrow">INTEGRAL DE ENERGÍA</div><h3>Teoría vs. simulación</h3></div></div><div id="energyTable" class="table-scroll"></div><div id="plot-parity" class="plot compact hidden" aria-label="Descomposición par e impar"></div><button class="button small ghost download hidden" data-plot="plot-parity">PNG par / impar</button></article>
       </div>
+      <details style="margin-top:16px"><summary>Consultar valores numéricos en instantes clave</summary><div class="details-body"><div id="keyValuesTable" class="table-scroll"></div><p class="table-caption">Se reportan valores en la malla de simulación para t = −1, 0, 0.5, 1, 2 y 3 s.</p></div></details>
+      <div class="callout"><strong>Convención:</strong> las señales se muestrean en \(t\in[-2,4]\) s con \(\Delta t=2\) ms y se insertan explícitamente \(t_k\pm1\,\mu s\) en sus flancos.</div>
     </section>
 
-    <section id="panel-operations" class="panel pt-5" role="tabpanel">
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div><h2 class="text-lg font-bold">Operaciones algebraicas</h2><p class="text-sm text-slate-400">Suma y producto punto a punto, con comparación analítica.</p></div>
-        <label class="flex items-center gap-2 text-sm text-slate-300"><input id="showReferences" type="checkbox" class="accent-sky-500" checked>Superponer señales originales</label>
+    <section id="operaciones" class="section">
+      <div class="section-head"><div><div class="kicker">02 · COMBINACIÓN Y CÁLCULO</div><h2>Operaciones algebraicas</h2><p class="section-desc">Suma y producto con referencias opcionales, error de energía frente al valor analítico y herramientas de Unidad 2.</p></div>
+        <div class="toolbar"><label class="eyebrow"><input id="showReferences" type="checkbox" checked> Señales originales</label><button id="operationsCsv" class="button small" type="button">Descargar CSV</button></div>
       </div>
-      <div class="grid gap-4 xl:grid-cols-2">
-        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
-          <div class="flex items-center justify-between"><h3 class="font-semibold">Suma \(s(t)=x_1(t)+x_2(t)\)</h3><button class="download-button text-xs text-sky-400" data-plot="plot-sum">Descargar PNG</button></div>
-          <div id="plot-sum" class="plot" aria-label="Gráfica de la suma"></div>
-          <p class="text-sm text-slate-400">Definición directa: \(s(t)=\mu(t)-\mu(t-1)+x_2(t)\).</p>
-        </article>
-        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
-          <div class="flex items-center justify-between"><h3 class="font-semibold">Producto \(p(t)=x_1(t)x_2(t)\)</h3><button class="download-button text-xs text-sky-400" data-plot="plot-product">Descargar PNG</button></div>
-          <div id="plot-product" class="plot" aria-label="Gráfica del producto"></div>
-          <p id="productFormula" class="text-sm text-slate-400"></p>
-        </article>
+      <div class="grid two">
+        <article class="card"><div class="card-head"><h3>Suma \(s(t)=x_1(t)+x_2(t)\)</h3><button class="button small ghost download" data-plot="plot-sum">PNG 3×</button></div><div id="plot-sum" class="plot" aria-label="Suma temporal"></div><div class="formula">\(s(t)=\mu(t)-\mu(t-1)+x_2(t)\)</div></article>
+        <article class="card"><div class="card-head"><h3>Producto \(p(t)=x_1(t)x_2(t)\)</h3><button class="button small ghost download" data-plot="plot-product">PNG 3×</button></div><div id="plot-product" class="plot" aria-label="Producto temporal"></div><div id="productFormula" class="formula"></div></article>
       </div>
-      <p class="mt-4 rounded-lg border border-slate-800 bg-slate-900 p-3 text-sm text-slate-300">Error máximo frente a la expresión por tramos: <strong id="operationError" class="text-emerald-400">0.0000 %</strong>. El cálculo se realiza con las mismas muestras temporales explícitas.</p>
-    </section>
-
-    <section id="panel-transforms" class="panel pt-5" role="tabpanel">
-      <div class="mb-4"><h2 class="text-lg font-bold">Transformaciones temporales</h2><p class="text-sm text-slate-400">La referencia punteada representa la señal original.</p></div>
-      <div class="mb-4 grid gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-2">
-        <div class="control-card">
-          <label for="scaleSlider" class="flex justify-between text-sm font-semibold"><span>Escala temporal \(a\)</span><output id="scaleValue">2.00</output></label>
-          <input id="scaleSlider" class="mt-3 w-full" type="range" min="0.25" max="4" step="0.05" value="2" aria-label="Factor de escala temporal">
-          <button id="scaleGuide" class="mt-2 rounded border border-slate-700 px-2 py-1 text-xs text-sky-300 hover:border-sky-500">Valor de la guía: a = 2</button>
+      <div class="callout"><strong>Validación independiente:</strong> la señal calculada se contrasta punto a punto contra las funciones analíticas definidas por tramos; además, la tabla muestra energía trapezoidal, energía exacta y error porcentual relativo. <span id="operationMetrics"></span></div>
+      <article class="card" style="margin-top:16px">
+        <div class="card-head"><div><div class="eyebrow">UNIDAD 2 · OPERADORES INTEGRALES Y DIFERENCIALES</div><h3>Integral acumulada y derivada</h3></div><button class="button small ghost download" data-plot="plot-calculus">PNG 3×</button></div>
+        <div class="toolbar">
+          <label class="control" style="min-width:190px"><span>Señal</span><select id="calculusSignal"><option value="x1">x₁(t)</option><option value="x2">x₂(t)</option></select></label>
+          <label class="control" style="min-width:190px"><span>Vista</span><select id="calculusMode"><option value="both">Integral y derivada</option><option value="integral">Integral acumulada</option><option value="derivative">Derivada generalizada</option></select></label>
         </div>
-        <div class="control-card">
-          <label for="tauTransform" class="flex justify-between text-sm font-semibold"><span>Desplazamiento \(\tau\)</span><output id="tauTransformValue">1.00 s</output></label>
-          <input id="tauTransform" class="mt-3 w-full" type="range" min="-2" max="3" step="0.05" value="1" aria-label="Desplazamiento de tiempo">
-          <button id="tauGuide" class="mt-2 rounded border border-slate-700 px-2 py-1 text-xs text-sky-300 hover:border-sky-500">Valor de la guía: τ = 1 s</button>
-        </div>
-      </div>
-      <div class="grid gap-4 xl:grid-cols-2">
-        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
-          <div class="flex items-center justify-between"><h3 class="font-semibold">Compresión / expansión \(x_1(at)\)</h3><button class="download-button text-xs text-sky-400" data-plot="plot-scale">Descargar PNG</button></div>
-          <div id="plot-scale" class="plot" aria-label="Transformación de escala"></div>
-          <p class="text-sm text-slate-400">Para \(a&gt;1\), el soporte se comprime a \([0,1/a]\).</p>
-        </article>
-        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
-          <div class="flex items-center justify-between"><h3 class="font-semibold">Adelanto / retardo \(x_2(t-\tau)\)</h3><button class="download-button text-xs text-sky-400" data-plot="plot-shift">Descargar PNG</button></div>
-          <div id="plot-shift" class="plot" aria-label="Transformación de desplazamiento"></div>
-          <p class="text-sm text-slate-400">\(\tau&gt;0\) desplaza la señal hacia la derecha (retardo).</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="panel-system" class="panel pt-5" role="tabpanel">
-      <div class="mb-4"><h2 class="text-lg font-bold">Caracterización de \(H[x](t)=t\,x(t+t_0)\)</h2><p class="text-sm text-slate-400">Las curvas y veredictos se actualizan con los parámetros.</p></div>
-      <div class="mb-4 grid gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-2">
-        <label class="text-sm font-semibold">Señal de prueba para causalidad e invarianza
-          <select id="systemSignal" class="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-normal text-slate-100">
-            <option value="x1">x₁(t) · Pulso rectangular</option><option value="x2">x₂(t) · Señal seleccionada</option>
-          </select>
-        </label>
-        <div>
-          <label for="t0Causal" class="flex justify-between text-sm font-semibold"><span>Desplazamiento \(t_0\) · causalidad</span><output id="t0CausalValue">1.00 s</output></label>
-          <input id="t0Causal" class="mt-3 w-full" type="range" min="-2" max="2" step="0.05" value="1" aria-label="Desplazamiento para causalidad">
-          <p id="causalVerdict" class="mt-1 text-sm font-bold text-rose-400">NO CAUSAL: depende del futuro</p>
-        </div>
-      </div>
-      <div class="grid gap-4 xl:grid-cols-2">
-        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
-          <div class="flex items-center justify-between"><h3 class="font-semibold">Causalidad</h3><button class="download-button text-xs text-sky-400" data-plot="plot-causal">Descargar PNG</button></div>
-          <div id="plot-causal" class="plot" aria-label="Respuesta del sistema y región de anticipación"></div>
-          <p class="text-sm text-slate-400">Si \(t_0&gt;0\), \(x(t+t_0)\) consulta instantes futuros.</p>
-        </article>
-        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
-          <div class="flex items-center justify-between"><h3 class="font-semibold">Linealidad por superposición</h3><button class="download-button text-xs text-sky-400" data-plot="plot-linearity">Descargar PNG</button></div>
-          <div id="plot-linearity" class="plot" aria-label="Comparación de superposición"></div>
-          <div class="mt-2 flex items-center justify-between"><h4 class="text-sm font-semibold text-slate-300">Residuo absoluto de superposición</h4><button class="download-button text-xs text-sky-400" data-plot="plot-residual">Descargar PNG</button></div>
-          <div id="plot-residual" class="plot" aria-label="Gráfica del error residual de linealidad"></div>
-          <div class="mt-2 flex gap-5 text-sm">
-            <label class="flex-1">a = <output id="alphaValue">1.00</output><input id="alphaSlider" class="block w-full" type="range" min="-3" max="3" step="0.1" value="1" aria-label="Coeficiente a de linealidad"></label>
-            <label class="flex-1">b = <output id="betaValue">1.00</output><input id="betaSlider" class="block w-full" type="range" min="-3" max="3" step="0.1" value="1" aria-label="Coeficiente b de linealidad"></label>
-          </div>
-          <p class="mt-2 text-xs text-slate-400">Error máximo del residuo: <strong id="linearityError" class="text-emerald-400">0.0000</strong></p>
-        </article>
-        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4 xl:col-span-2">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h3 class="font-semibold">Invarianza temporal</h3>
-            <button class="download-button text-xs text-sky-400" data-plot="plot-invariance">Descargar PNG</button>
-          </div>
-          <div class="my-3 grid gap-4 sm:grid-cols-2">
-            <label class="text-sm">Desplazamiento de entrada \(\tau\): <output id="tauSystemValue">1.00 s</output><input id="tauSystem" class="block w-full" type="range" min="-2" max="2" step="0.05" value="1" aria-label="Desplazamiento para invarianza"></label>
-            <label class="text-sm">Desplazamiento del sistema \(t_0\): <output id="t0InvariantValue">0.50 s</output><input id="t0Invariant" class="block w-full" type="range" min="-2" max="2" step="0.05" value="0.5" aria-label="t0 para invarianza"></label>
-          </div>
-          <div id="plot-invariance" class="plot" aria-label="Comparación de invariancia temporal"></div>
-          <p class="text-sm text-slate-400">RMS de discrepancia: <strong id="invarianceRms" class="text-amber-400">0.0000</strong></p>
-        </article>
-      </div>
-    </section>
-
-    <section id="panel-proof" class="panel pt-5">
-      <div class="mb-4"><h2 class="text-lg font-bold">Demostración formal y resumen técnico</h2><p class="text-sm text-slate-400">Desarrollo analítico de referencia para el informe.</p></div>
-      <div class="grid gap-4 lg:grid-cols-2">
-        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h3 class="font-semibold text-sky-300">Modelos por tramos</h3>
-          <p class="mt-3">Pulso rectangular:</p>
-          <p>\[x_1(t)=\begin{cases}1,&0\le t\le1\\0,&\text{en otro caso}\end{cases}\]</p>
-          <p id="proofX2" class="mt-3"></p>
-          <p class="mt-3">Operaciones: \(s(t)=x_1(t)+x_2(t)\), \(p(t)=x_1(t)x_2(t)\), \(x_1(at)\) y \(x_2(t-\tau)\).</p>
-        </article>
-        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h3 class="font-semibold text-sky-300">Causalidad</h3>
-          <p class="mt-3">\[y(t)=t\,x(t+t_0)\]</p>
-          <p>Para \(t_0&gt;0\), la respuesta en \(t\) depende de \(x\) en \(t+t_0&gt;t\). Con una entrada causal que empieza en \(0\), puede haber salida en \(-t_0\le t&lt;0\); por tanto, \(H\) no es causal. Si \(t_0\le0\), solo intervienen valores presentes o pasados y el sistema es causal.</p>
-        </article>
-        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h3 class="font-semibold text-sky-300">Linealidad</h3>
-          <p class="mt-3">\[\begin{aligned}H[a x_1+b x_2](t)&=t[a x_1(t+t_0)+b x_2(t+t_0)]\\&=a\,t x_1(t+t_0)+b\,t x_2(t+t_0)\\&=aH[x_1](t)+bH[x_2](t).\end{aligned}\]</p>
-          <p>El operador es lineal para escalares constantes \(a,b\); el residuo numérico debe ser cero salvo redondeo.</p>
-        </article>
-        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-4">
-          <h3 class="font-semibold text-sky-300">Varianza en el tiempo</h3>
-          <p class="mt-3">\[\begin{aligned}H[x(t-\tau)]&=t\,x(t-\tau+t_0),\\y(t-\tau)&=(t-\tau)x(t-\tau+t_0),\\H[x(t-\tau)]-y(t-\tau)&=\tau\,x(t-\tau+t_0).\end{aligned}\]</p>
-          <p>Para \(\tau\ne0\) y una entrada no nula en el intervalo considerado, las salidas difieren: el sistema es variante en el tiempo.</p>
-        </article>
-      </div>
-      <article class="mt-4 rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h3 class="font-semibold">Criterios y conclusiones de simulación</h3>
-        <div class="table-scroll mt-3">
-          <table class="w-full min-w-[600px] text-left text-sm">
-            <thead class="border-b border-slate-700 text-xs uppercase text-slate-400"><tr><th class="p-2">Magnitud</th><th class="p-2">Resultado analítico</th><th class="p-2">Resultado simulado</th><th class="p-2">Criterio</th></tr></thead>
-            <tbody class="divide-y divide-slate-800 text-slate-300">
-              <tr><td class="p-2">Error de operaciones</td><td class="p-2">0</td><td id="proofError" class="p-2">0.0000 %</td><td class="p-2 text-emerald-400">&lt; 2 %</td></tr>
-              <tr><td class="p-2">Linealidad</td><td class="p-2">Residuo = 0</td><td id="proofLinearity" class="p-2">0.0000</td><td class="p-2 text-emerald-400">Superposición</td></tr>
-              <tr><td class="p-2">Causalidad</td><td class="p-2">Depende del signo de t₀</td><td id="proofCausality" class="p-2">NO CAUSAL</td><td class="p-2">t₀ ≤ 0: causal</td></tr>
-              <tr><td class="p-2">Invarianza</td><td class="p-2">Discrepancia = τx(·)</td><td class="p-2">Variante en el tiempo</td><td class="p-2">τ ≠ 0</td></tr>
-              <tr><td class="p-2">Muestreo</td><td class="p-2">dt = 0.002 s</td><td class="p-2">Flancos insertados ±1 μs</td><td class="p-2">Malla explícita</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p class="mt-4 text-sm leading-6 text-slate-400">Conclusión: \(H[x](t)=t\,x(t+t_0)\) es lineal y variante en el tiempo; su causalidad depende de \(t_0\). Las energías y discontinuidades mostradas se recalculan para el modelo elegido. La integral numérica usa regla trapezoidal y una malla uniforme suplementada en los flancos.</p>
+        <div id="plot-calculus" class="plot tall" aria-label="Integral y derivada de la señal seleccionada"></div>
+        <p id="calculusNote" class="formula"></p>
       </article>
     </section>
-    <footer class="mt-8 border-t border-slate-800 py-5 text-center text-xs text-slate-500">Simulación educativa local · Las bibliotecas de visualización y ecuaciones se cargan desde CDN.</footer>
+
+    <section id="transformaciones" class="section">
+      <div class="section-head"><div><div class="kicker">03 · DOMINIO TEMPORAL</div><h2>Transformaciones interactivas</h2><p class="section-desc">Escalamiento, traslación e inversión temporal; la señal de referencia permanece punteada.</p></div></div>
+      <article class="card">
+        <div class="toolbar">
+          <label class="control" style="flex:1"><label for="scaleSlider">Escala a <output id="scaleValue">2.00</output></label><input id="scaleSlider" type="range" min="0.25" max="4" step="0.05" value="2"></label>
+          <label class="control" style="flex:1"><label for="tauTransform">Desplazamiento τ <output id="tauTransformValue">1.00 s</output></label><input id="tauTransform" type="range" min="-2" max="3" step="0.05" value="1"></label>
+          <label class="eyebrow" style="padding:10px"><input id="timeReverse" type="checkbox"> Inversión temporal (−t)</label>
+          <button id="scaleGuide" class="button small ghost">Valor guía: a=2</button><button id="tauGuide" class="button small ghost">Valor guía: τ=1</button>
+        </div>
+        <div id="transformFormula" class="formula-dynamic formula">\(y(t)=x_1(2t),\quad z(t)=x_2(t-1)\)</div>
+      </article>
+      <div class="grid two" style="margin-top:16px">
+        <article class="card"><div class="card-head"><h3>Escalamiento \(x_1(at)\)</h3><button class="button small ghost download" data-plot="plot-scale">PNG 3×</button></div><div id="plot-scale" class="plot" aria-label="Escalamiento temporal"></div></article>
+        <article class="card"><div class="card-head"><h3>Desplazamiento \(x_2(t-\tau)\)</h3><button class="button small ghost download" data-plot="plot-shift">PNG 3×</button></div><div id="plot-shift" class="plot" aria-label="Desplazamiento temporal"></div></article>
+      </div>
+    </section>
+
+    <section id="muestreo" class="section">
+      <div class="section-head"><div><div class="kicker">04 · PUENTE CONTINUO–DISCRETO</div><h2>Muestreo de señales</h2><p class="section-desc">Compara una señal continua con \(x[n]=x(nT_s)\) y explora cómo el periodo de muestreo altera la representación discreta.</p></div></div>
+      <article class="card">
+        <div class="toolbar">
+          <label class="control" style="min-width:220px"><span>Señal de entrada</span><select id="sampleSignal"><option value="x1">x₁(t)</option><option value="x2">x₂(t)</option><option value="sum">x₁(t)+x₂(t)</option></select></label>
+          <label class="control" style="flex:1;min-width:220px"><label for="samplePeriod">Periodo de muestreo \(T_s\) <output id="samplePeriodValue">0.10 s</output></label><input id="samplePeriod" type="range" min="0.05" max="0.5" step="0.01" value="0.1"></label>
+          <button class="button small ghost download" data-plot="plot-sampling">PNG 3×</button>
+          <button id="samplingCsv" class="button small">Descargar CSV</button>
+        </div>
+        <div id="plot-sampling" class="plot tall" aria-label="Muestreo y señal continua"></div>
+        <div class="grid three">
+          <div class="callout"><strong>Frecuencia de muestreo</strong><br><span id="samplingFrequency" class="mono">fₛ = 10.00 Hz</span></div>
+          <div class="callout"><strong>Muestras activas</strong><br><span id="activeSamples" class="mono">0</span></div>
+          <div class="callout"><strong>Energía discreta</strong><br><span id="discreteEnergy" class="mono">Σ|x[n]|² = 0</span></div>
+        </div>
+        <p class="table-caption">La energía discreta indicada es la suma solicitada \(\sum_n|x[n]|^2\), sin ponderación por \(T_s\).</p>
+      </article>
+    </section>
+
+    <section id="sistema" class="section">
+      <div class="section-head"><div><div class="kicker">05 · PRUEBAS DE SISTEMAS</div><h2>Caracterización de \(H[x](t)\)</h2><p class="section-desc">Sistema \(y(t)=t\,x(t+t_0)\). Ajusta entradas y coeficientes para comprobar cada propiedad.</p></div></div>
+      <article class="card" style="margin-bottom:16px">
+        <div class="toolbar">
+          <label class="control" style="min-width:220px"><span>Señal de prueba</span><select id="systemSignal"><option value="x1">x₁(t) · rectangular</option><option value="x2">x₂(t) · modelo global</option></select></label>
+          <div id="activeSystemEquation" class="formula-dynamic formula">\(y(t)=t\,x_1(t+t_0)\)</div>
+        </div>
+      </article>
+      <div class="grid three">
+        <article class="card"><div class="card-head"><div><div class="eyebrow">05A · DEPENDENCIA TEMPORAL</div><h3>Causalidad</h3></div><span id="causalBadge" class="badge disc">NO CAUSAL</span></div>
+          <label class="control" style="margin-top:13px"><label for="t0Causal">t₀ <output id="t0CausalValue">1.00 s</output></label><input id="t0Causal" type="range" min="-2" max="2" step="0.05" value="1"></label>
+          <div id="causalEquation" class="formula-dynamic formula">\(y(t)=t\,x(t+1)\)</div><button class="button small ghost download" data-plot="plot-causal">PNG 3×</button><div id="plot-causal" class="plot compact" aria-label="Prueba de causalidad"></div>
+          <p class="table-caption">\(t_0&gt;0\): dependencia futura y región anticipada roja.</p>
+        </article>
+        <article class="card"><div class="card-head"><div><div class="eyebrow">05B · SUPERPOSICIÓN</div><h3>Linealidad</h3></div><span class="badge ok">LINEAL</span></div>
+          <label class="control" style="margin-top:13px"><label for="alphaSlider">a <output id="alphaValue">1.0</output></label><input id="alphaSlider" type="range" min="-3" max="3" step="0.1" value="1"></label>
+          <label class="control" style="margin-top:9px"><label for="betaSlider">b <output id="betaValue">1.0</output></label><input id="betaSlider" type="range" min="-3" max="3" step="0.1" value="1"></label>
+          <button class="button small ghost download" style="margin-top:10px" data-plot="plot-linearity">PNG superposición</button><div id="plot-linearity" class="plot compact" aria-label="Prueba de linealidad"></div>
+          <div class="eyebrow">RESIDUO |e(t)| · MÁX <strong id="linearityError">0</strong></div><button class="button small ghost download" style="margin-top:8px" data-plot="plot-residual">PNG residuo</button><div id="plot-residual" class="plot compact" aria-label="Residuo de linealidad"></div>
+        </article>
+        <article class="card"><div class="card-head"><div><div class="eyebrow">05C · DESPLAZAMIENTO</div><h3>Invarianza temporal</h3></div><span class="badge warn">VARIANTE</span></div>
+          <label class="control" style="margin-top:13px"><label for="tauSystem">τ <output id="tauSystemValue">1.00 s</output></label><input id="tauSystem" type="range" min="-2" max="2" step="0.05" value="1"></label>
+          <label class="control" style="margin-top:9px"><label for="t0Invariant">t₀ <output id="t0InvariantValue">0.50 s</output></label><input id="t0Invariant" type="range" min="-2" max="2" step="0.05" value="0.5"></label>
+          <div class="formula-dynamic formula">\(H[x(t-\tau)]-y(t-\tau)=\tau x(t-\tau+t_0)\)</div><button class="button small ghost download" data-plot="plot-invariance">PNG 3×</button><div id="plot-invariance" class="plot compact" aria-label="Prueba de invarianza temporal"></div>
+          <div class="eyebrow">RMS DE DISCREPANCIA · <strong id="invarianceRms">0.0000</strong></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="formal" class="section">
+      <div class="section-head"><div><div class="kicker">06 · ANÁLISIS Y DEFENSA</div><h2>Demostración formal y verificación</h2><p class="section-desc">Resultados cuantitativos y demostraciones desplegables para revisar el fundamento matemático.</p></div></div>
+      <article class="card"><div class="card-head"><h3>Tabla comparativa · analítico vs. simulado</h3></div><div id="verificationTable" class="table-scroll"></div></article>
+      <div class="grid two" style="margin-top:16px">
+        <details><summary>Ver desarrollo · causalidad</summary><div class="details-body"><div class="math-step"><p>La salida en el tiempo t consulta la entrada en \(t+t_0\).</p>\[y(t)=t\,x(t+t_0)\]</div><div class="math-step"><p>Si \(t_0&gt;0\), entonces \(t+t_0&gt;t\): para obtener la salida presente se requiere una muestra futura. Con una entrada causal puede aparecer respuesta en \(-t_0\le t&lt;0\). Por eso el sistema no es causal. Si \(t_0\le0\), solo intervienen el presente o el pasado.</p></div></div></details>
+        <details><summary>Ver desarrollo · linealidad</summary><div class="details-body"><div class="math-step">\[\begin{aligned}H[a x_1+b x_2](t)&=t\{a x_1(t+t_0)+b x_2(t+t_0)\}\\&=a\,t x_1(t+t_0)+b\,t x_2(t+t_0)\\&=aH[x_1](t)+bH[x_2](t).\end{aligned}\]</div><p>El operador satisface superposición para escalares constantes; el residuo es cero salvo redondeo de máquina.</p></div></details>
+        <details><summary>Ver desarrollo · invarianza temporal</summary><div class="details-body"><div class="math-step">\[\begin{aligned}H[x(t-\tau)]&=t\,x(t-\tau+t_0),\\y(t-\tau)&=(t-\tau)x(t-\tau+t_0),\\H[x(t-\tau)]-y(t-\tau)&=\tau x(t-\tau+t_0).\end{aligned}\]</div><p>Para \(\tau\ne0\) y entrada no nula, las salidas difieren: el sistema es variante en el tiempo.</p></div></details>
+        <details><summary>Ver desarrollo · señales y energías</summary><div class="details-body"><div id="formalX2" class="formula-dynamic formula"></div><p>\(E_{x_1}=1\), \(E_{x_2}=8/3\) en modo A y \(2/3\) en modo B. Las energías de las operaciones se muestran con el cálculo numérico y la integral analítica.</p></div></details>
+      </div>
+      <article class="card" style="margin-top:16px">
+        <div class="card-head"><div><div class="eyebrow">COMPROBACIÓN DE CONCEPTOS</div><h3>Mini-quiz de Fase 1</h3></div><span id="quizScore" class="badge">PUNTAJE 0 / 5</span></div>
+        <div class="quiz-progress" aria-label="Progreso del quiz"><span id="quizProgress"></span></div>
+        <p id="quizQuestion" class="quiz-question"></p><div id="quizOptions" class="quiz-options"></div><p id="quizFeedback" class="quiz-feedback" aria-live="polite"></p>
+        <div class="quiz-footer"><span id="quizCount" class="eyebrow">PREGUNTA 1 / 5</span><button id="quizNext" class="button small primary" disabled>Siguiente pregunta →</button></div>
+      </article>
+      <div class="callout"><strong>Conclusión:</strong> H es lineal y variante en el tiempo; la causalidad depende del signo de \(t_0\). La resolución temporal, el modelo triangular o rampa y los parámetros del sistema son modificables en vivo.</div>
+    </section>
+    <footer class="footer"><div>UTN · FICA · ANÁLISIS Y PROCESAMIENTO DE SEÑALES</div><div style="margin-top:7px">Laboratorio académico local · Plotly y KaTeX cargados por CDN · Fase 1</div></footer>
   </main>
 
   <script>
     "use strict";
-    (function () {
+    (() => {
       const $ = (id) => document.getElementById(id);
-      const EPS = 1e-6;
-      const DT = 0.002;
-      const T_MIN = -2;
-      const T_MAX = 4;
-      const COLORS = { blue: "#38bdf8", orange: "#fb923c", green: "#34d399", purple: "#c084fc", red: "#fb7185", gray: "#94a3b8" };
-      let renderQueued = false;
-      let parityVisible = false;
-      let plotTime = [];
+      const EPS = 1e-6, DT = 0.002, T_MIN = -5, T_MAX = 7;
+      const C = { cont: getComputedStyle(document.documentElement).getPropertyValue("--cont").trim(), disc: getComputedStyle(document.documentElement).getPropertyValue("--disc").trim(), accent: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(), ok: getComputedStyle(document.documentElement).getPropertyValue("--ok").trim(), warn: getComputedStyle(document.documentElement).getPropertyValue("--warn").trim(), muted: getComputedStyle(document.documentElement).getPropertyValue("--muted").trim() };
+      let plotTime = [], renderPending = false, parityVisible = false;
+      const quiz = [
+        { q: "¿En qué intervalo es distinta de cero x₁(t)?", options: ["0 ≤ t ≤ 1 s", "−1 ≤ t ≤ 0 s", "0 ≤ t ≤ 2 s"], answer: 0, why: "x₁(t)=μ(t)−μ(t−1): pulso unitario en [0,1] s." },
+        { q: "En modo A, ¿cuál es la energía de x₂(t)=t para 0≤t≤2?", options: ["2/3", "8/3", "4"], answer: 1, why: "E=∫₀²t²dt=[t³/3]₀²=8/3." },
+        { q: "Para H[x](t)=t x(t+t₀), ¿cuándo es causal?", options: ["Solo cuando t₀>0", "Cuando t₀≤0", "Para cualquier t₀"], answer: 1, why: "Si t₀≤0, la salida depende solo del presente o del pasado." },
+        { q: "¿Qué propiedad demuestra H[a x₁+b x₂]=aH[x₁]+bH[x₂]?", options: ["Invarianza temporal", "Linealidad", "Causalidad"], answer: 1, why: "La igualdad es la propiedad de superposición que define linealidad." },
+        { q: "¿Por qué H es variante en el tiempo?", options: ["Porque la salida incluye el factor t", "Porque x₁ es rectangular", "Porque el periodo Ts cambia"], answer: 0, why: "Al desplazar la entrada, el factor queda t en H[x(t−τ)] y t−τ en y(t−τ)." }
+      ];
+      let quizIndex = 0, quizScore = 0, quizAnswered = false;
 
-      function currentMode() { return $("x2Mode").value; }
+      function mode() { return $("x2Mode").value; }
       function x1(t) { return t >= 0 && t <= 1 ? 1 : 0; }
       function x2(t) {
-        if (currentMode() === "A") return t >= 0 && t <= 2 ? t : 0;
+        if (mode() === "A") return t >= 0 && t <= 2 ? t : 0;
         if (t >= 0 && t <= 1) return t;
         if (t > 1 && t <= 2) return 2 - t;
         return 0;
       }
-      function selectedSignal() { return $("systemSignal").value === "x1" ? x1 : x2; }
+      function sumSignal(t) {
+        if (mode() === "A") {
+          if (t >= 0 && t <= 1) return 1 + t;
+          if (t > 1 && t <= 2) return t;
+          return 0;
+        }
+        if (t >= 0 && t <= 1) return 1 + t;
+        if (t > 1 && t <= 2) return 2 - t;
+        return 0;
+      }
+      function productSignal(t) { return t >= 0 && t <= 1 ? t : 0; }
+      function fnByKey(key) { return key === "x1" ? x1 : key === "x2" ? x2 : key === "sum" ? sumSignal : productSignal; }
       function makeTime(events) {
         const values = [];
         for (let i = 0; i <= Math.round((T_MAX - T_MIN) / DT); i++) values.push(T_MIN + i * DT);
-        events.forEach((point) => {
-          if (point >= T_MIN && point <= T_MAX) {
-            values.push(point - EPS, point + EPS);
-          }
-        });
+        for (const point of events) if (Number.isFinite(point) && point >= T_MIN && point <= T_MAX) values.push(point - EPS, point + EPS);
         values.sort((a, b) => a - b);
-        return values.filter((v, i) => i === 0 || v !== values[i - 1]);
+        return values.filter((value, index) => !index || value !== values[index - 1]);
       }
-      function range(time, fn) { return time.map(fn); }
+      function vector(time, fn) { return time.map(fn); }
       function energy(time, values) {
         let total = 0;
-        for (let i = 1; i < time.length; i++) {
-          total += (time[i] - time[i - 1]) * (values[i] * values[i] + values[i - 1] * values[i - 1]) / 2;
-        }
+        for (let i = 1; i < time.length; i++) total += (time[i] - time[i - 1]) * (values[i] ** 2 + values[i - 1] ** 2) / 2;
         return total;
       }
-      function maxAbs(values) { return values.reduce((m, value) => Math.max(m, Math.abs(value)), 0); }
       function rms(time, values) {
-        let integral = 0;
-        for (let i = 1; i < time.length; i++) {
-          integral += (time[i] - time[i - 1]) * (values[i] * values[i] + values[i - 1] * values[i - 1]) / 2;
-        }
-        return Math.sqrt(integral / Math.max(time[time.length - 1] - time[0], EPS));
+        return Math.sqrt(energy(time, values) / Math.max(time[time.length - 1] - time[0], EPS));
       }
-      function fmt(value, digits) { return Number(value).toFixed(digits === undefined ? 4 : digits); }
-      function layout(title, yTitle) {
-        const light = document.documentElement.classList.contains("light");
-        const foreground = light ? "#1e293b" : "#e2e8f0";
-        const grid = light ? "#dbe3eb" : "#334155";
-        const paper = light ? "#ffffff" : "#0f172a";
-        const plot = light ? "#ffffff" : "#0f172a";
+      function maxAbs(values) { return values.reduce((max, value) => Math.max(max, Math.abs(value)), 0); }
+      function fmt(value, digits = 4) { return Number(value).toFixed(digits); }
+      function exactEnergies() {
+        const e2 = mode() === "A" ? 8 / 3 : 2 / 3;
+        return { x1: 1, x2: e2, sum: mode() === "A" ? 14 / 3 : 8 / 3, product: 1 / 3 };
+      }
+      function themeColors() {
+        const css = getComputedStyle(document.documentElement);
         return {
-          title: { text: title, font: { size: 14, color: foreground } },
-          paper_bgcolor: paper, plot_bgcolor: plot, font: { color: foreground, family: "Inter, sans-serif", size: 11 },
-          margin: { l: 54, r: 18, t: 42, b: 48 }, hovermode: "x unified",
-          xaxis: { title: "Tiempo t [s]", range: [T_MIN, T_MAX], gridcolor: grid, zeroline: true, zerolinecolor: foreground, minor: { showgrid: true, gridcolor: grid, dtick: 0.5 } },
-          yaxis: { title: yTitle || "Amplitud", gridcolor: grid, zeroline: true, zerolinecolor: foreground },
-          legend: { orientation: "h", y: -0.24, x: 0 }, showlegend: true
+          text: css.getPropertyValue("--text").trim(),
+          muted: css.getPropertyValue("--muted").trim(),
+          grid: document.documentElement.dataset.theme === "dark" ? "#30384d" : "#e5e9f1",
+          paper: css.getPropertyValue("--plot-paper").trim(),
+          plot: css.getPropertyValue("--plot-bg").trim()
         };
       }
-      const plotConfig = {
-        responsive: true, displaylogo: false, scrollZoom: true,
-        toImageButtonOptions: { format: "png", filename: "aps_fase1", width: 1600, height: 900, scale: 3 }
-      };
-      function trace(name, y, color, extra) {
-        return Object.assign({ x: plotTime, y, name, type: "scatter", mode: "lines", line: { color, width: 2 } }, extra || {});
+      function chartLayout(title, yTitle = "Amplitud") {
+        const c = themeColors();
+        return {
+          title: { text: title, font: { family: "Space Grotesk, sans-serif", size: 14, color: c.text } },
+          paper_bgcolor: c.paper, plot_bgcolor: c.plot, font: { family: "Inter, sans-serif", size: 11, color: c.text },
+          margin: { l: 54, r: 16, t: 42, b: 56 }, hovermode: "x unified",
+          xaxis: { title: "Tiempo t [s]", range: [-2, 4], gridcolor: c.grid, zeroline: true, zerolinecolor: c.muted, automargin: true },
+          yaxis: { title: yTitle, gridcolor: c.grid, zeroline: true, zerolinecolor: c.muted, automargin: true },
+          legend: { orientation: "h", y: -0.22, x: 0, font: { size: 10 } }
+        };
       }
-      function updatePlot(id, traces, chartLayout) {
-        const element = $(id);
-        if (!element || !window.Plotly) return;
-        Plotly.react(element, traces, chartLayout, plotConfig);
+      const config = { responsive: true, displaylogo: false, scrollZoom: true, toImageButtonOptions: { format: "png", filename: "aps_fase1", width: 1600, height: 1000, scale: 3 } };
+      function trace(name, x, y, color, options = {}) {
+        return Object.assign({ name, x, y, type: "scatter", mode: "lines", line: { color, width: 2 } }, options);
+      }
+      function reactPlot(id, traces, layout) {
+        const node = $(id);
+        if (node && window.Plotly) Plotly.react(node, traces, layout, config);
       }
       function downloadPlot(id) {
-        const element = $(id);
-        if (!element || !window.Plotly || !element.data) return;
-        Plotly.downloadImage(element, { format: "png", filename: id + "_aps_fase1", width: 1600, height: 900, scale: 3 });
+        const node = $(id);
+        if (node && node.data && window.Plotly) Plotly.downloadImage(node, { format: "png", filename: id + "_aps_fase1", width: 1600, height: 1000, scale: 3 });
       }
-      function buildTable(headers, rows) {
-        return '<table class="min-w-full text-left text-xs"><thead class="border-b border-slate-700 text-slate-400"><tr>' +
-          headers.map((header) => '<th class="whitespace-nowrap px-3 py-2">' + header + "</th>").join("") +
-          "</tr></thead><tbody class=\"divide-y divide-slate-800 text-slate-300\">" +
-          rows.map((row) => "<tr>" + row.map((cell) => '<td class="whitespace-nowrap px-3 py-2">' + cell + "</td>").join("") + "</tr>").join("") +
-          "</tbody></table>";
+      function table(headers, rows) {
+        return "<table><thead><tr>" + headers.map((cell) => "<th>" + cell + "</th>").join("") + "</tr></thead><tbody>" +
+          rows.map((row) => "<tr>" + row.map((cell) => "<td>" + cell + "</td>").join("") + "</tr>").join("") + "</tbody></table>";
       }
-      function updateTables(time, values) {
-        const critical = [0, 0.5, 1, 2, 3];
-        const signalFunctions = [
-          ["x₁(t)", x1], ["x₂(t)", x2],
-          ["Suma", (q) => x1(q) + x2(q)],
-          ["Producto", (q) => x1(q) * x2(q)],
-          ["x₁(2t)", (q) => x1(2 * q)],
-          ["x₂(t−1)", (q) => x2(q - 1)]
+      function katex(root = document.body) {
+        if (!window.renderMathInElement) return;
+        renderMathInElement(root, {
+          delimiters: [{ left: "$$", right: "$$", display: true }, { left: "\\[", right: "\\]", display: true }, { left: "\\(", right: "\\)", display: false }],
+          throwOnError: false, ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+        });
+      }
+      function nearSides(fn, point) {
+        const left = 2 * fn(point - EPS) - fn(point - 2 * EPS);
+        const right = 2 * fn(point + EPS) - fn(point + 2 * EPS);
+        return right - left;
+      }
+      function updateSignalTables(time, values) {
+        const knots = [0, 0.5, 1, 2, 3];
+        const series = [
+          ["x₁(t)", x1], ["x₂(t)", x2], ["x₁+x₂", sumSignal], ["x₁·x₂", productSignal],
+          ["x₁(2t)", (t) => x1(2 * t)], ["x₂(t−1)", (t) => x2(t - 1)]
         ];
-        const dRows = signalFunctions.map(([name, fn]) => [name].concat(critical.map((at) => {
-          const left = 2 * fn(at - EPS) - fn(at - 2 * EPS);
-          const right = 2 * fn(at + EPS) - fn(at + 2 * EPS);
-          return fmt(right - left, 4);
-        })));
-        $("discontinuityTable").innerHTML = buildTable(["Señal \\ t₀ [s]"].concat(critical.map((at) => at.toFixed(1))), dRows);
-
-        const exactX2 = currentMode() === "A" ? 8 / 3 : 2 / 3;
-        const exactSum = currentMode() === "A" ? 14 / 3 : 8 / 3;
+        $("discontinuityTable").innerHTML = table(["Señal \\ t₀ [s]", ...knots.map((value) => value.toFixed(1))],
+          series.map(([label, fn]) => [label, ...knots.map((point) => {
+            const jump = nearSides(fn, point);
+            return fmt(Math.abs(jump) < 1e-10 ? 0 : jump, 4);
+          })]));
+        const exact = exactEnergies();
         const energyRows = [
-          ["x₁(t)", 1, energy(time, values.x1)],
-          ["x₂(t)", exactX2, energy(time, values.x2)],
-          ["x₁ + x₂", exactSum, energy(time, values.sum)],
-          ["x₁ · x₂", 1 / 3, energy(time, values.product)],
-          ["x₁(2t)", 0.5, energy(time, values.scaled)],
-          ["x₂(t−1)", exactX2, energy(time, values.shifted)]
-        ].map((row) => [row[0], fmt(row[1]), fmt(row[2]), fmt(Math.abs(row[2] - row[1]) / Math.max(row[1], EPS) * 100, 5) + "%"]);
-        $("energyTable").innerHTML = buildTable(["Señal", "E analítica [J]", "E numérica [J]", "Error"], energyRows);
+          ["x₁(t)", "x1"], ["x₂(t)", "x2"], ["x₁+x₂", "sum"], ["x₁·x₂", "product"]
+        ].map(([label, key]) => {
+          const numerical = energy(time, values[key]), theory = exact[key];
+          return [label, fmt(theory), fmt(numerical), fmt(Math.abs(numerical - theory) / Math.max(theory, EPS) * 100, 5) + "%"];
+        });
+        $("energyTable").innerHTML = table(["Señal", "E analítica", "E numérica", "Error"], energyRows);
+        const exactTime = [-1, 0, 0.5, 1, 2, 3];
+        $("keyValuesTable").innerHTML = table(["Señal \\ t [s]", ...exactTime.map((value) => value.toFixed(1))], [
+          ["x₁(t)", ...exactTime.map((t) => fmt(x1(t), 4))],
+          ["x₂(t)", ...exactTime.map((t) => fmt(x2(t), 4))],
+          ["x₁(t)+x₂(t)", ...exactTime.map((t) => fmt(sumSignal(t), 4))],
+          ["x₁(t)·x₂(t)", ...exactTime.map((t) => fmt(productSignal(t), 4))]
+        ]);
+        const errors = energyRows.map((row) => parseFloat(row[3]));
+        const maxError = Math.max(...errors);
+        const pointError = pointwiseOperationError(time, values);
+        $("kpiError").textContent = fmt(Math.max(maxError, pointError.percent), 5) + "%";
+        $("operationMetrics").textContent = " Error punto a punto: MAE " + pointError.mae.toExponential(2) + ", RMSE " + pointError.rmse.toExponential(2) + ", máximo " + pointError.percent.toExponential(2) + "%. Error máximo de energía: " + fmt(maxError, 5) + "%.";
+        $("verificationTable").innerHTML = table(
+          ["Criterio", "Resultado analítico", "Resultado simulado", "Veredicto"],
+          [
+            ["Energía x₁", "1 J", fmt(energy(time, values.x1)) + " J", errors[0] < 2 ? "PASA" : "REVISAR"],
+            ["Energía x₂", fmt(exact.x2) + " J", fmt(energy(time, values.x2)) + " J", errors[1] < 2 ? "PASA" : "REVISAR"],
+            ["Linealidad", "Residuo = 0", $("linearityError").textContent, "LINEAL"],
+            ["Causalidad", "t₀≤0 causal; t₀>0 no causal", $("causalBadge").textContent, "SEGÚN t₀"],
+            ["Invarianza", "Diferencia = τx(·)", "RMS " + $("invarianceRms").textContent, "VARIANTE"]
+          ].map((row) => row.map((value, index) => index === 3 ? '<span class="tone-ok">' + value + "</span>" : value)));
       }
-
-      function render() {
-        renderQueued = false;
-        const a = Number($("scaleSlider").value);
-        const tau = Number($("tauTransform").value);
-        const t0 = Number($("t0Causal").value);
-        const tauSystem = Number($("tauSystem").value);
-        const t0Invariant = Number($("t0Invariant").value);
-        const signalBreaks = [0, 1, 2];
-        const systemBreaks = signalBreaks.map((point) => point - t0);
-        const invariantBreaks = signalBreaks.map((point) => point + tauSystem - t0Invariant);
-        const time = makeTime([0, 0.5, 1, 2, 3, 1 / a, tau, tau + 1, tau + 2]
-          .concat(systemBreaks, invariantBreaks));
-        plotTime = time;
-        const xx1 = range(time, x1);
-        const xx2 = range(time, x2);
-        const sum = xx1.map((v, i) => v + xx2[i]);
-        const product = xx1.map((v, i) => v * xx2[i]);
-        const scaled = range(time, (t) => x1(a * t));
-        const shifted = range(time, (t) => x2(t - tau));
-        const values = { x1: xx1, x2: xx2, sum, product, scaled, shifted };
-
-        const mode = currentMode();
-        const exactX2 = mode === "A" ? 8 / 3 : 2 / 3;
-        const exactSum = mode === "A" ? 14 / 3 : 8 / 3;
-        const energyExact = { x1: 1, x2: exactX2, sum: exactSum, product: 1 / 3 };
-        const activeEnergy = energy(time, values[$("activeSignal").value]);
-        $("kpiEnergy").textContent = fmt(activeEnergy) + " J";
-        const operationMax = maxAbs(sum.map((v, i) => v - (x1(time[i]) + x2(time[i]))).concat(
-          product.map((v, i) => v - x1(time[i]) * x2(time[i]))
+      function pointwiseOperationError(time, values) {
+        const residual = time.map((t, i) => Math.max(
+          Math.abs(values.sum[i] - sumSignal(t)),
+          Math.abs(values.product[i] - productSignal(t))
         ));
-        const operationPct = operationMax / Math.max(maxAbs(sum), maxAbs(product), 1) * 100;
-        $("kpiError").textContent = fmt(operationPct, 4) + " %";
-        $("operationError").textContent = fmt(operationPct, 4) + " %";
-        $("proofError").textContent = fmt(operationPct, 4) + " %";
-
-        const base1Traces = [trace("x₁(t)", xx1, COLORS.blue)];
-        const base2Traces = [trace("x₂(t)", xx2, COLORS.orange)];
-        if (parityVisible) {
-          base1Traces.push(trace("x₁ par", range(time, (t) => (x1(t) + x1(-t)) / 2), COLORS.green));
-          base1Traces.push(trace("x₁ impar", range(time, (t) => (x1(t) - x1(-t)) / 2), COLORS.purple));
-          base2Traces.push(trace("x₂ par", range(time, (t) => (x2(t) + x2(-t)) / 2), COLORS.green));
-          base2Traces.push(trace("x₂ impar", range(time, (t) => (x2(t) - x2(-t)) / 2), COLORS.purple));
-        }
-        updatePlot("plot-x1", base1Traces, layout(parityVisible ? "x₁(t) y componentes par/impar" : "Pulso rectangular x₁(t)"));
-        updatePlot("plot-x2", base2Traces, layout(parityVisible ? "x₂(t) y componentes par/impar · modo " + mode : "Señal x₂(t) · modo " + mode));
-
-        const referenceTraces = $("showReferences").checked ? [
-          trace("x₁(t)", xx1, COLORS.blue, { line: { color: COLORS.blue, width: 1, dash: "dot" }, opacity: 0.55 }),
-          trace("x₂(t)", xx2, COLORS.orange, { line: { color: COLORS.orange, width: 1, dash: "dot" }, opacity: 0.55 })
-        ] : [];
-        updatePlot("plot-sum", referenceTraces.concat([trace("x₁+x₂", sum, COLORS.green)]), layout("Suma temporal"));
-        updatePlot("plot-product", referenceTraces.concat([trace("x₁·x₂", product, COLORS.purple)]), layout("Producto temporal"));
-
-        $("scaleValue").textContent = fmt(a, 2);
-        $("tauTransformValue").textContent = fmt(tau, 2) + " s";
-        updatePlot("plot-scale", [
-          trace("Original x₁(t)", xx1, COLORS.blue, { line: { color: COLORS.blue, width: 1.5, dash: "dot" } }),
-          trace("Transformada x₁(at)", scaled, COLORS.red)
-        ], layout("Escalamiento temporal · a = " + fmt(a, 2)));
-        updatePlot("plot-shift", [
-          trace("Original x₂(t)", xx2, COLORS.orange, { line: { color: COLORS.orange, width: 1.5, dash: "dot" } }),
-          trace("Transformada x₂(t−τ)", shifted, COLORS.purple)
-        ], layout("Desplazamiento temporal · τ = " + fmt(tau, 2) + " s"));
-
-        const signal = selectedSignal();
-        const causalY = range(time, (t) => t * signal(t + t0));
-        $("t0CausalValue").textContent = fmt(t0, 2) + " s";
-        const causal = t0 <= 0;
-        $("causalVerdict").textContent = causal ? "CAUSAL: depende del presente/pasado" : "NO CAUSAL: depende del futuro";
-        $("causalVerdict").className = "mt-1 text-sm font-bold " + (causal ? "text-emerald-400" : "text-rose-400");
-        $("causalKpi").textContent = "CAUSALIDAD: " + (causal ? "CAUSAL" : "NO CAUSAL");
-        $("causalKpi").className = "mt-2 text-xs font-semibold " + (causal ? "text-emerald-400" : "text-rose-400");
-        $("proofCausality").textContent = causal ? "CAUSAL" : "NO CAUSAL";
-        const causalLayout = layout("H[x](t) = t x(t+t₀) · t₀ = " + fmt(t0, 2));
-        if (t0 > 0) {
-          causalLayout.shapes = [{ type: "rect", xref: "x", yref: "paper", x0: -t0, x1: 0, y0: 0, y1: 1, fillcolor: "rgba(244,63,94,.16)", line: { width: 0 } }];
-          causalLayout.annotations = [{ x: -t0 / 2, y: 0.95, xref: "x", yref: "paper", text: "región anticipada", showarrow: false, font: { color: COLORS.red, size: 10 } }];
-        }
-        updatePlot("plot-causal", [trace("y(t)", causalY, causal ? COLORS.green : COLORS.red)], causalLayout);
-
-        const alpha = Number($("alphaSlider").value);
-        const beta = Number($("betaSlider").value);
-        $("alphaValue").textContent = fmt(alpha, 1);
-        $("betaValue").textContent = fmt(beta, 1);
-        const combined = range(time, (t) => t * (alpha * x1(t + t0) + beta * x2(t + t0)));
-        const superposed = range(time, (t) => alpha * t * x1(t + t0) + beta * t * x2(t + t0));
-        const residual = combined.map((v, i) => Math.abs(v - superposed[i]));
-        const linearError = maxAbs(residual);
-        $("linearityError").textContent = linearError.toExponential(2);
-        $("proofLinearity").textContent = linearError.toExponential(2);
-        updatePlot("plot-linearity", [
-          trace("H[ax₁+bx₂]", combined, COLORS.blue),
-          trace("aH[x₁]+bH[x₂]", superposed, COLORS.orange, { line: { color: COLORS.orange, width: 1.8, dash: "dash" } })
-        ], layout("Superposición · a = " + fmt(alpha, 1) + ", b = " + fmt(beta, 1)));
-        updatePlot("plot-residual", [
-          trace("|e(t)|", residual, COLORS.purple)
-        ], layout("Residuo absoluto · máximo = " + linearError.toExponential(2)));
-
-        $("tauSystemValue").textContent = fmt(tauSystem, 2) + " s";
-        $("t0InvariantValue").textContent = fmt(t0Invariant, 2) + " s";
-        const yd = range(time, (t) => t * signal(t - tauSystem + t0Invariant));
-        const shiftedY = range(time, (t) => (t - tauSystem) * signal(t - tauSystem + t0Invariant));
-        const diff = yd.map((v, i) => v - shiftedY[i]);
-        $("invarianceRms").textContent = fmt(rms(time, diff), 4);
-        const invarianceLayout = layout("Comparación temporal · τ = " + fmt(tauSystem, 2) + " s, t₀ = " + fmt(t0Invariant, 2));
-        invarianceLayout.shapes = [];
-        updatePlot("plot-invariance", [
-          trace("H[x(t−τ)]", yd, COLORS.red),
-          trace("y(t−τ)", shiftedY, COLORS.blue, {
-            line: { color: COLORS.blue, width: 1.8, dash: "dash" },
-            fill: "tonexty", fillcolor: "rgba(251,146,60,.22)"
-          })
-        ], invarianceLayout);
-        if (parityVisible) {
-          $("plot-parity").classList.remove("hidden");
-          document.querySelector('[data-plot="plot-parity"]').classList.remove("hidden");
-          updatePlot("plot-parity", [
-            trace("x₁ par", range(time, (t) => (x1(t) + x1(-t)) / 2), COLORS.green),
-            trace("x₁ impar", range(time, (t) => (x1(t) - x1(-t)) / 2), COLORS.purple),
-            trace("x₂ par", range(time, (t) => (x2(t) + x2(-t)) / 2), COLORS.orange),
-            trace("x₂ impar", range(time, (t) => (x2(t) - x2(-t)) / 2), COLORS.blue)
-          ], layout("Descomposición par e impar"));
-        } else {
-          $("plot-parity").classList.add("hidden");
-          document.querySelector('[data-plot="plot-parity"]').classList.add("hidden");
-        }
-        updateTables(time, values);
-      }
-      function scheduleRender() {
-        if (renderQueued) return;
-        renderQueued = true;
-        window.requestAnimationFrame(render);
-      }
-      function setTheme(theme) {
-        const light = theme === "light";
-        document.documentElement.classList.toggle("dark", !light);
-        document.documentElement.classList.toggle("light", light);
-        document.body.className = light
-          ? "min-h-screen bg-slate-50 text-slate-900 transition-colors"
-          : "min-h-screen bg-slate-950 text-slate-100 transition-colors";
-        document.querySelectorAll("header, article, .math-card, .control-card, #panel-proof > article, #panel-base > div > article, #panel-operations > p, #panel-transforms > div, #panel-system > div").forEach((element) => {
-          element.classList.toggle("bg-white", light);
-          element.classList.toggle("border-slate-200", light);
-          element.classList.toggle("bg-slate-900", !light);
-          element.classList.toggle("border-slate-800", !light);
-        });
-        document.querySelectorAll("p, h1, h2, h3, label, td, th").forEach((element) => {
-          if (element.classList.contains("text-slate-400") || element.classList.contains("text-slate-300")) {
-            element.classList.toggle("text-slate-600", light);
-          }
-        });
-        scheduleRender();
+        const mae = residual.reduce((sum, value) => sum + value, 0) / Math.max(residual.length, 1);
+        const rmse = Math.sqrt(residual.reduce((sum, value) => sum + value * value, 0) / Math.max(residual.length, 1));
+        return { mae, rmse, percent: maxAbs(residual) / Math.max(maxAbs(values.sum), maxAbs(values.product), 1) * 100 };
       }
       function updateFormulas() {
-        if (currentMode() === "A") {
-          $("x2Formula").textContent = "Modo A: x₂(t)=t para 0≤t≤2; cero fuera. Pico 2 en t=2 s.";
-          $("productFormula").textContent = "Modo A: p(t)=t para 0≤t≤1; cero fuera.";
-          $("proofX2").textContent = "\\[x_2(t)=\\begin{cases}t,&0\\le t\\le2\\\\0,&\\text{en otro caso}\\end{cases}\\]";
+        if (mode() === "A") {
+          $("x2Formula").textContent = "\\[x_2(t)=\\begin{cases}t,&0\\le t\\le2\\\\0,&\\text{en otro caso}\\end{cases}\\quad E_{x_2}=\\frac83\\]";
+          $("productFormula").textContent = "\\[p(t)=\\begin{cases}t,&0\\le t\\le1\\\\0,&\\text{en otro caso}\\end{cases}\\]";
+          $("formalX2").textContent = "\\[x_2(t)=\\begin{cases}t,&0\\le t\\le2\\\\0,&\\text{en otro caso}\\end{cases}\\]";
         } else {
-          $("x2Formula").textContent = "Modo B: x₂(t)=t para 0≤t≤1; x₂(t)=2−t para 1<t≤2; cero fuera. Pico 1 en t=1 s.";
-          $("productFormula").textContent = "Modo B: p(t)=t para 0≤t≤1; cero fuera.";
-          $("proofX2").textContent = "\\[x_2(t)=\\begin{cases}t,&0\\le t\\le1\\\\2-t,&1<t\\le2\\\\0,&\\text{en otro caso}\\end{cases}\\]";
+          $("x2Formula").textContent = "\\[x_2(t)=\\begin{cases}t,&0\\le t\\le1\\\\2-t,&1<t\\le2\\\\0,&\\text{en otro caso}\\end{cases}\\quad E_{x_2}=\\frac23\\]";
+          $("productFormula").textContent = "\\[p(t)=\\begin{cases}t,&0\\le t\\le1\\\\0,&\\text{en otro caso}\\end{cases}\\]";
+          $("formalX2").textContent = "\\[x_2(t)=\\begin{cases}t,&0\\le t\\le1\\\\2-t,&1<t\\le2\\\\0,&\\text{en otro caso}\\end{cases}\\]";
         }
-        if (window.renderMathInElement) {
-          renderMathInElement(document.body, {
-            delimiters: [
-              { left: "$$", right: "$$", display: true },
-              { left: "\\[", right: "\\]", display: true },
-              { left: "\\(", right: "\\)", display: false }
-            ],
-            throwOnError: false
-          });
-        }
+        katex();
       }
-      function reset() {
-        $("x2Mode").value = "A";
-        $("themeMode").value = "dark";
-        $("activeSignal").value = "x1";
-        $("showReferences").checked = true;
-        $("systemSignal").value = "x1";
-        $("scaleSlider").value = "2";
-        $("tauTransform").value = "1";
-        $("t0Causal").value = "1";
-        $("alphaSlider").value = "1";
-        $("betaSlider").value = "1";
-        $("tauSystem").value = "1";
-        $("t0Invariant").value = "0.5";
-        parityVisible = false;
-        $("parityButton").setAttribute("aria-pressed", "false");
-        $("parityButton").textContent = "Mostrar descomposición par/impar";
-        setTheme("dark");
-        updateFormulas();
+      function makeEvents(a, tau, t0, tauSystem, t0Invariant) {
+        const supportKnots = mode() === "A" ? [0, 2] : [0, 1, 2];
+        const events = [0, 1, 0.5, 2, 3, 1 / a];
+        for (const point of supportKnots) {
+          events.push(point + tau, -point - tau);
+          events.push(point - t0);
+          events.push(point + tauSystem - t0Invariant);
+          events.push(-point / a);
+        }
+        events.push(-1, -0.5, 0.25, 0.75, 1.5, 1.75);
+        return events;
+      }
+      function render() {
+        renderPending = false;
+        const a = Number($("scaleSlider").value), tau = Number($("tauTransform").value);
+        const t0 = Number($("t0Causal").value), tauSystem = Number($("tauSystem").value), t0Invariant = Number($("t0Invariant").value);
+        const reverse = $("timeReverse").checked;
+        const time = makeTime(makeEvents(a, tau, t0, tauSystem, t0Invariant));
+        const baseTime = time.filter((t) => t >= -2 && t <= 4);
+        plotTime = baseTime;
+        const arrX1 = vector(baseTime, x1), arrX2 = vector(baseTime, x2);
+        const vals = {
+          x1: arrX1, x2: arrX2,
+          sum: arrX1.map((value, index) => value + arrX2[index]),
+          product: arrX1.map((value, index) => value * arrX2[index])
+        };
+        const exact = exactEnergies();
+        const activeKey = $("activeSignal").value;
+        const activeEnergy = energy(baseTime, vals[activeKey]);
+        $("kpiEnergy").textContent = fmt(activeEnergy, 4) + " J";
+        reactPlot("plot-x1", [
+          trace("x₁(t)", baseTime, arrX1, C.cont),
+          ...(parityVisible ? [
+            trace("x₁ par", baseTime, vector(baseTime, (t) => (x1(t) + x1(-t)) / 2), C.ok),
+            trace("x₁ impar", baseTime, vector(baseTime, (t) => (x1(t) - x1(-t)) / 2), C.accent)
+          ] : [])
+        ], chartLayout("Pulso rectangular x₁(t)"));
+        reactPlot("plot-x2", [
+          trace("x₂(t)", baseTime, arrX2, C.accent),
+          ...(parityVisible ? [
+            trace("x₂ par", baseTime, vector(baseTime, (t) => (x2(t) + x2(-t)) / 2), C.ok),
+            trace("x₂ impar", baseTime, vector(baseTime, (t) => (x2(t) - x2(-t)) / 2), C.disc)
+          ] : [])
+        ], chartLayout("Señal x₂(t) · modo " + mode()));
+
+        const refs = $("showReferences").checked ? [
+          trace("x₁(t)", baseTime, arrX1, C.cont, { line: { color: C.cont, width: 1.1, dash: "dot" }, opacity: .5 }),
+          trace("x₂(t)", baseTime, arrX2, C.accent, { line: { color: C.accent, width: 1.1, dash: "dot" }, opacity: .5 })
+        ] : [];
+        reactPlot("plot-sum", refs.concat([trace("x₁+x₂", baseTime, vals.sum, C.ok)]), chartLayout("Suma temporal"));
+        reactPlot("plot-product", refs.concat([trace("x₁·x₂", baseTime, vals.product, C.disc)]), chartLayout("Producto temporal"));
+
+        const sysX1 = vector(time, x1), sysX2 = vector(time, x2);
+        const scaleSignal = vector(time, (t) => x1((reverse ? -1 : 1) * a * t));
+        const shiftSignal = vector(time, (t) => x2(reverse ? -t - tau : t - tau));
+        $("scaleValue").textContent = fmt(a, 2);
+        $("tauTransformValue").textContent = fmt(tau, 2) + " s";
+        const sign = reverse ? "−" : "";
+        $("transformFormula").textContent = "\\[y(t)=x_1(" + sign + fmt(a, 2) + "t),\\quad z(t)=x_2(" + (reverse ? "−t−" + fmt(tau, 2) : "t−" + fmt(tau, 2)) + ")\\]";
+        katex($("transformFormula"));
+        const scaleLayout = chartLayout((reverse ? "Inversión y escala" : "Escalamiento") + " · a = " + fmt(a, 2));
+        scaleLayout.xaxis.range = [-Math.max(2, 1 / a), Math.max(4, 1 / a)];
+        reactPlot("plot-scale", [
+          trace("Original x₁(t)", time, sysX1, C.muted, { line: { color: C.muted, width: 1.3, dash: "dot" } }),
+          trace(reverse ? "x₁(−at)" : "x₁(at)", time, scaleSignal, C.disc)
+        ], scaleLayout);
+        const shiftLayout = chartLayout("Traslación e inversión · τ = " + fmt(tau, 2));
+        shiftLayout.xaxis.range = reverse
+          ? [Math.min(-2, -tau - 2), 4]
+          : [-2, Math.max(4, tau + 2)];
+        reactPlot("plot-shift", [
+          trace("Original x₂(t)", time, sysX2, C.muted, { line: { color: C.muted, width: 1.3, dash: "dot" } }),
+          trace(reverse ? "x₂(−t−τ)" : "x₂(t−τ)", time, shiftSignal, C.accent)
+        ], shiftLayout);
+
+        const activeSignal = $("systemSignal").value === "x1" ? x1 : x2;
+        const signalSymbol = $("systemSignal").value === "x1" ? "x_1" : "x_2";
+        $("activeSystemEquation").textContent = "\\[y(t)=t\\," + signalSymbol + "(t+t_0)\\]";
+        katex($("activeSystemEquation"));
+        const causalY = vector(time, (t) => t * activeSignal(t + t0));
+        $("t0CausalValue").textContent = fmt(t0, 2) + " s";
+        const causal = t0 <= 0;
+        $("causalBadge").textContent = causal ? "CAUSAL" : "NO CAUSAL";
+        $("causalBadge").className = "badge " + (causal ? "ok" : "disc");
+        $("causalKpi").innerHTML = '<span class="badge ' + (causal ? "ok" : "disc") + '">' + (causal ? "CAUSAL" : "NO CAUSAL") + "</span>";
+        $("causalEquation").textContent = "\\[y(t)=t\\," + signalSymbol + "(t" + (t0 >= 0 ? "+" : "") + fmt(t0, 2) + ")\\]";
+        katex($("causalEquation"));
+        const causalLayout = chartLayout("Respuesta del sistema · t₀ = " + fmt(t0, 2));
+        if (t0 > 0) {
+          causalLayout.shapes = [{ type: "rect", xref: "x", yref: "paper", x0: -t0, x1: 0, y0: 0, y1: 1, fillcolor: "rgba(225,48,108,.13)", line: { width: 0 } }];
+          causalLayout.annotations = [{ x: -t0 / 2, y: .92, xref: "x", yref: "paper", text: "respuesta anticipada · t<0", showarrow: false, font: { color: C.disc, size: 10 } }];
+        }
+        causalLayout.xaxis.range = [-2, 2];
+        reactPlot("plot-causal", [trace("y(t)", time, causalY, causal ? C.ok : C.disc)], causalLayout);
+
+        const alpha = Number($("alphaSlider").value), beta = Number($("betaSlider").value);
+        $("alphaValue").textContent = fmt(alpha, 1); $("betaValue").textContent = fmt(beta, 1);
+        const combined = vector(time, (t) => t * (alpha * x1(t + t0) + beta * x2(t + t0)));
+        const superposed = vector(time, (t) => alpha * (t * x1(t + t0)) + beta * (t * x2(t + t0)));
+        const residual = combined.map((value, i) => Math.abs(value - superposed[i]));
+        const linearError = maxAbs(residual);
+        $("linearityError").textContent = linearError.toExponential(2);
+        reactPlot("plot-linearity", [
+          trace("H[a x₁+b x₂]", time, combined, C.cont),
+          trace("aH[x₁]+bH[x₂]", time, superposed, C.accent, { line: { color: C.accent, width: 1.8, dash: "dash" } })
+        ], chartLayout("Superposición · a = " + fmt(alpha, 1) + ", b = " + fmt(beta, 1)));
+        reactPlot("plot-residual", [trace("|e(t)|", time, residual, C.disc)], chartLayout("Residuo máximo = " + linearError.toExponential(2)));
+
+        $("tauSystemValue").textContent = fmt(tauSystem, 2) + " s"; $("t0InvariantValue").textContent = fmt(t0Invariant, 2) + " s";
+        const yd = vector(time, (t) => t * activeSignal(t - tauSystem + t0Invariant));
+        const shiftedY = vector(time, (t) => (t - tauSystem) * activeSignal(t - tauSystem + t0Invariant));
+        $("invarianceRms").textContent = fmt(rms(time, yd.map((value, i) => value - shiftedY[i])), 4);
+        const invarianceLayout = chartLayout("Varianza temporal · τ = " + fmt(tauSystem, 2));
+        invarianceLayout.xaxis.range = [-5, 7];
+        reactPlot("plot-invariance", [
+          trace("H[x(t−τ)]", time, yd, C.disc),
+          trace("y(t−τ)", time, shiftedY, C.cont, { line: { color: C.cont, width: 1.8, dash: "dash" }, fill: "tonexty", fillcolor: "rgba(225,48,108,.16)" })
+        ], invarianceLayout);
+
+        updateSignalTables(baseTime, vals);
+        updateCalculus(baseTime);
+        updateSampling();
+      }
+      function scheduleRender() {
+        if (renderPending) return;
+        renderPending = true;
+        requestAnimationFrame(render);
+      }
+      function updateCalculus(time = plotTime) {
+        if (!time.length) return;
+        const key = $("calculusSignal").value;
+        const fn = key === "x1" ? x1 : x2;
+        const signalValues = vector(time, fn);
+        const integralValues = new Array(time.length).fill(0);
+        for (let i = 1; i < time.length; i++) integralValues[i] = integralValues[i - 1] + (time[i] - time[i - 1]) * (signalValues[i] + signalValues[i - 1]) / 2;
+        const modeView = $("calculusMode").value;
+        const c = themeColors(), data = [];
+        if (modeView !== "derivative") data.push(trace("∫₋∞ᵗ x(τ)dτ", time, integralValues, C.cont, { yaxis: "y" }));
+        const deriv = key === "x1"
+          ? vector(time, () => 0)
+          : vector(time, (t) => mode() === "A" ? (t > 0 && t < 2 ? 1 : 0) : (t > 0 && t < 1 ? 1 : t > 1 && t < 2 ? -1 : 0));
+        if (modeView !== "integral") data.push(trace(key === "x1" ? "Parte regular x₁′(t)" : "Parte regular x₂′(t)", time, deriv, C.accent, { yaxis: modeView === "both" ? "y2" : "y" }));
+        const layout = chartLayout("Cálculo integral y diferencial · " + (key === "x1" ? "x₁" : "x₂"), modeView === "both" ? "Integral acumulada" : "Amplitud");
+        if (modeView === "both") {
+          layout.yaxis2 = { title: "Derivada regular", overlaying: "y", side: "right", showgrid: false, zeroline: true, zerolinecolor: c.muted };
+          layout.grid = { rows: 1, columns: 1, pattern: "independent" };
+        }
+        if (modeView !== "integral") {
+          const impulses = key === "x1" ? [{ x: 0, weight: "+1·δ(t)" }, { x: 1, weight: "−1·δ(t−1)" }]
+            : mode() === "A" ? [{ x: 2, weight: "−2·δ(t−2)" }] : [];
+          layout.annotations = impulses.map((point) => ({
+            x: point.x, y: modeView === "both" ? .75 : 0, xref: "x", yref: modeView === "both" ? "paper" : "y",
+            text: point.weight, showarrow: true, arrowhead: 2, arrowsize: 1.3, arrowwidth: 1.5, arrowcolor: C.disc,
+            ax: 0, ay: -42, font: { color: C.disc, size: 10 }
+          }));
+        }
+        reactPlot("plot-calculus", data, layout);
+        const derivativeNote = key === "x1"
+          ? "\\[x_1'(t)=\\delta(t)-\\delta(t-1)\\]"
+          : mode() === "A"
+            ? "\\[x_2'(t)=\\mathbf{1}_{(0,2)}(t)-2\\delta(t-2)\\]"
+            : "\\[x_2'(t)=\\mathbf{1}_{(0,1)}(t)-\\mathbf{1}_{(1,2)}(t)\\]";
+        $("calculusNote").textContent = modeView === "integral"
+          ? "Integral numérica acumulada por regla trapezoidal desde el límite inferior del eje."
+          : derivativeNote + " Las flechas muestran el peso de los impulsos por saltos de amplitud; los cambios de pendiente no generan impulsos.";
+        katex($("calculusNote"));
+      }
+      function updateSampling() {
+        const ts = Number($("samplePeriod").value);
+        const key = $("sampleSignal").value;
+        const fn = fnByKey(key);
+        const t = makeTime([0, 1, 2]).filter((value) => value >= -2 && value <= 4);
+        const y = vector(t, fn);
+        const start = Math.ceil(-2 / ts), end = Math.floor(4 / ts);
+        const ns = [], sampleT = [], sampleY = [];
+        for (let n = start; n <= end; n++) {
+          ns.push(n); sampleT.push(n * ts); sampleY.push(fn(n * ts));
+        }
+        const active = sampleY.filter((value) => Math.abs(value) > 1e-12);
+        $("samplePeriodValue").textContent = fmt(ts, 2) + " s";
+        $("samplingFrequency").textContent = "fₛ = " + fmt(1 / ts, 2) + " Hz";
+        $("activeSamples").textContent = String(active.length);
+        $("discreteEnergy").textContent = "Σ|x[n]|² = " + fmt(sampleY.reduce((acc, value) => acc + value * value, 0), 4);
+        const layout = chartLayout("Continuo y muestras · Tₛ = " + fmt(ts, 2) + " s");
+        const stemX = [], stemY = [];
+        sampleT.forEach((value, index) => {
+          stemX.push(value, value, null);
+          stemY.push(0, sampleY[index], null);
+        });
+        reactPlot("plot-sampling", [
+          trace("x(t)", t, y, C.cont),
+          { name: "Bastones", x: stemX, y: stemY, type: "scatter", mode: "lines", line: { color: C.disc, width: 1.5 }, hoverinfo: "skip" },
+          { name: "x[n] = x(nTₛ)", x: sampleT, y: sampleY, type: "scatter", mode: "markers", marker: { color: C.disc, size: 7, symbol: "circle" }, hovertemplate: "n·Tₛ=%{x:.3f} s<br>x[n]=%{y:.4f}<extra></extra>" }
+        ], layout);
+      }
+      function csvDownload(filename, headers, rows) {
+        const csv = [headers, ...rows].map((row) => row.map((value) => '"' + String(value).replace(/"/g, '""') + '"').join(",")).join("\r\n");
+        const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob); link.download = filename; link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 500);
+      }
+      function downloadBaseCsv() {
+        const time = makeTime([0, 1, 2]).filter((value) => value >= -2 && value <= 4);
+        csvDownload("aps_fase1_senales.csv", ["t_s", "x1", "x2", "suma", "producto"], time.map((t) => [t, x1(t), x2(t), sumSignal(t), productSignal(t)]));
+      }
+      function downloadOperationsCsv() {
+        const time = makeTime([0, 1, 2]).filter((value) => value >= -2 && value <= 4);
+        csvDownload("aps_fase1_operaciones.csv", ["t_s", "suma_x1_mas_x2", "producto_x1_por_x2", "energia_suma_teorica", "energia_producto_teorica"],
+          time.map((t) => [t, sumSignal(t), productSignal(t), exactEnergies().sum, exactEnergies().product]));
+      }
+      function downloadSamplingCsv() {
+        const ts = Number($("samplePeriod").value), fn = fnByKey($("sampleSignal").value);
+        const start = Math.ceil(-2 / ts), end = Math.floor(4 / ts), rows = [];
+        for (let n = start; n <= end; n++) rows.push([n, n * ts, fn(n * ts)]);
+        csvDownload("aps_fase1_muestreo.csv", ["n", "t_n_s", "x_n"], rows);
+      }
+      function setTheme(theme) {
+        document.documentElement.dataset.theme = theme;
+        document.querySelector('meta[name="theme-color"]').content = theme === "dark" ? "#0b0d17" : "#f7f8fc";
+        const css = getComputedStyle(document.documentElement);
+        C.cont = css.getPropertyValue("--cont").trim(); C.disc = css.getPropertyValue("--disc").trim();
+        C.accent = css.getPropertyValue("--accent").trim(); C.ok = css.getPropertyValue("--ok").trim();
+        C.warn = css.getPropertyValue("--warn").trim(); C.muted = css.getPropertyValue("--muted").trim();
+        $("themeButton").setAttribute("aria-label", theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro");
         scheduleRender();
       }
-      document.querySelectorAll(".tab-button").forEach((button) => {
-        button.addEventListener("click", () => {
-          document.querySelectorAll(".tab-button").forEach((tab) => tab.setAttribute("aria-selected", String(tab === button)));
-          document.querySelectorAll(".panel").forEach((panel) => panel.classList.toggle("active", panel.id === button.dataset.tab));
-          window.setTimeout(() => {
-            document.querySelectorAll(".plot").forEach((element) => {
-              if (element.data && window.Plotly) Plotly.Plots.resize(element);
+      function reset() {
+        $("x2Mode").value = "A"; $("activeSignal").value = "x1"; $("showReferences").checked = true;
+        $("scaleSlider").value = "2"; $("tauTransform").value = "1"; $("timeReverse").checked = false;
+        $("sampleSignal").value = "x1"; $("samplePeriod").value = ".1";
+        $("systemSignal").value = "x1"; $("t0Causal").value = "1"; $("alphaSlider").value = "1";
+        $("betaSlider").value = "1"; $("tauSystem").value = "1"; $("t0Invariant").value = ".5";
+        $("calculusSignal").value = "x1"; $("calculusMode").value = "both";
+        parityVisible = false; $("parityButton").textContent = "Mostrar par / impar";
+        $("plot-parity").classList.add("hidden"); document.querySelector('[data-plot="plot-parity"]').classList.add("hidden");
+        setTheme("light"); updateFormulas(); scheduleRender();
+      }
+      function renderQuiz() {
+        const item = quiz[quizIndex];
+        $("quizQuestion").textContent = item.q;
+        $("quizCount").textContent = "PREGUNTA " + (quizIndex + 1) + " / " + quiz.length;
+        $("quizScore").textContent = "PUNTAJE " + quizScore + " / " + quiz.length;
+        $("quizProgress").style.width = (quizIndex / quiz.length * 100) + "%";
+        $("quizFeedback").textContent = "";
+        $("quizNext").disabled = true;
+        $("quizNext").textContent = quizIndex === quiz.length - 1 ? "Finalizar quiz" : "Siguiente pregunta →";
+        const container = $("quizOptions"); container.replaceChildren(); quizAnswered = false;
+        item.options.forEach((option, index) => {
+          const button = document.createElement("button");
+          button.className = "quiz-option"; button.type = "button"; button.textContent = option;
+          button.addEventListener("click", () => {
+            if (quizAnswered) return;
+            quizAnswered = true;
+            const correct = index === item.answer;
+            if (correct) quizScore++;
+            [...container.children].forEach((choice, choiceIndex) => {
+              choice.disabled = true;
+              if (choiceIndex === item.answer) choice.classList.add("correct");
+              else if (choiceIndex === index) choice.classList.add("incorrect");
             });
-          }, 0);
+            $("quizFeedback").textContent = (correct ? "¡Correcto! " : "No exactamente. ") + item.why;
+            $("quizFeedback").style.color = correct ? C.ok : C.disc;
+            $("quizScore").textContent = "PUNTAJE " + quizScore + " / " + quiz.length;
+            $("quizNext").disabled = false;
+          });
+          container.appendChild(button);
         });
-      });
-      ["x2Mode", "activeSignal", "showReferences", "systemSignal", "scaleSlider", "tauTransform",
-        "t0Causal", "alphaSlider", "betaSlider", "tauSystem", "t0Invariant"].forEach((id) => {
-        $(id).addEventListener("input", () => {
-          if (id === "x2Mode") updateFormulas();
-          scheduleRender();
+      }
+      function nextQuiz() {
+        if (!quizAnswered) return;
+        if (quizIndex < quiz.length - 1) { quizIndex++; renderQuiz(); }
+        else {
+          $("quizQuestion").textContent = "Quiz completado: " + quizScore + " de " + quiz.length + " respuestas correctas.";
+          $("quizOptions").replaceChildren();
+          $("quizFeedback").textContent = quizScore >= 4 ? "¡Listo para defender la Fase 1!" : "Repasa las demostraciones desplegables y vuelve a intentarlo.";
+          $("quizProgress").style.width = "100%";
+          $("quizNext").textContent = "Volver a empezar";
+          $("quizNext").disabled = false;
+          $("quizNext").onclick = () => { quizIndex = 0; quizScore = 0; $("quizNext").onclick = null; renderQuiz(); };
+        }
+      }
+      function initCanvas() {
+        const canvas = $("waveCanvas"), ctx = canvas.getContext("2d", { alpha: true });
+        if (!ctx) return;
+        const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        let width = 0, height = 0, raf = 0, active = true;
+        function resize() {
+          const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+          width = canvas.clientWidth; height = canvas.clientHeight;
+          canvas.width = Math.floor(width * ratio); canvas.height = Math.floor(height * ratio);
+          ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        }
+        function draw(now) {
+          if (!active || document.hidden) { raf = 0; return; }
+          const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+          const t = now * .00035;
+          ctx.clearRect(0, 0, width, height);
+          ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--hero-grid").trim();
+          ctx.lineWidth = 1;
+          for (let x = 0; x < width; x += 56) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
+          const base = height * .63, amp = Math.min(42, height * .11);
+          const cont = getComputedStyle(document.documentElement).getPropertyValue("--cont").trim();
+          const disc = getComputedStyle(document.documentElement).getPropertyValue("--disc").trim();
+          const mix = reduced ? 0 : (Math.sin(t) + 1) / 2;
+          ctx.lineWidth = 2.2; ctx.lineCap = "round"; ctx.beginPath();
+          for (let px = 0; px <= width; px += 2) {
+            const phase = px / Math.max(width, 1) * Math.PI * 5 + t * 5;
+            const y = base - Math.sin(phase) * amp;
+            if (px === 0) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+          }
+          ctx.strokeStyle = cont; ctx.globalAlpha = .68; ctx.stroke(); ctx.globalAlpha = 1;
+          const spacing = 34, pointStep = spacing * (1 + mix * 1.4);
+          for (let px = spacing / 2; px < width; px += pointStep) {
+            const phase = px / Math.max(width, 1) * Math.PI * 5 + t * 5;
+            const y = base - Math.sin(phase) * amp;
+            const stem = mix * 17;
+            ctx.globalAlpha = .35 + mix * .55; ctx.strokeStyle = disc; ctx.fillStyle = disc;
+            ctx.beginPath(); ctx.moveTo(px, base + stem); ctx.lineTo(px, y); ctx.stroke();
+            ctx.beginPath(); ctx.arc(px, y, 2 + mix, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          if (!reduced) raf = requestAnimationFrame(draw);
+          else raf = 0;
+          void ratio;
+        }
+        resize();
+        const observer = new IntersectionObserver((entries) => {
+          active = entries[0].isIntersecting;
+          if (active && !raf) raf = requestAnimationFrame(draw);
+          if (!active && raf) { cancelAnimationFrame(raf); raf = 0; }
         });
-        $(id).addEventListener("change", () => {
-          if (id === "x2Mode") updateFormulas();
-          scheduleRender();
+        observer.observe(canvas);
+        window.addEventListener("resize", resize, { passive: true });
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden && active && !raf) raf = requestAnimationFrame(draw);
+          else if (document.hidden && raf) { cancelAnimationFrame(raf); raf = 0; }
         });
-      });
-      $("themeMode").addEventListener("change", (event) => setTheme(event.target.value));
+        raf = requestAnimationFrame(draw);
+      }
+      document.querySelectorAll(".download").forEach((button) => button.addEventListener("click", () => downloadPlot(button.dataset.plot)));
+      $("x2Mode").addEventListener("change", () => { updateFormulas(); scheduleRender(); });
+      $("themeButton").addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light"));
       $("resetButton").addEventListener("click", reset);
+      $("activeSignal").addEventListener("change", scheduleRender);
+      $("showReferences").addEventListener("change", scheduleRender);
+      ["scaleSlider", "tauTransform", "timeReverse", "t0Causal", "alphaSlider", "betaSlider", "tauSystem", "t0Invariant", "systemSignal"].forEach((id) => $(id).addEventListener("input", scheduleRender));
+      ["timeReverse", "systemSignal"].forEach((id) => $(id).addEventListener("change", scheduleRender));
       $("scaleGuide").addEventListener("click", () => { $("scaleSlider").value = "2"; scheduleRender(); });
       $("tauGuide").addEventListener("click", () => { $("tauTransform").value = "1"; scheduleRender(); });
       $("parityButton").addEventListener("click", (event) => {
         parityVisible = !parityVisible;
-        event.currentTarget.setAttribute("aria-pressed", String(parityVisible));
-        event.currentTarget.textContent = parityVisible ? "Ocultar descomposición par/impar" : "Mostrar descomposición par/impar";
+        event.currentTarget.textContent = parityVisible ? "Ocultar par / impar" : "Mostrar par / impar";
+        $("plot-parity").classList.toggle("hidden", !parityVisible);
+        document.querySelector('[data-plot="plot-parity"]').classList.toggle("hidden", !parityVisible);
         scheduleRender();
       });
-      document.querySelectorAll(".download-button").forEach((button) => {
-        button.addEventListener("click", () => downloadPlot(button.dataset.plot));
-      });
+      $("calculusSignal").addEventListener("change", () => updateCalculus());
+      $("calculusMode").addEventListener("change", () => updateCalculus());
+      $("sampleSignal").addEventListener("change", updateSampling);
+      $("samplePeriod").addEventListener("input", updateSampling);
+      $("baseCsv").addEventListener("click", downloadBaseCsv);
+      $("operationsCsv").addEventListener("click", downloadOperationsCsv);
+      $("samplingCsv").addEventListener("click", downloadSamplingCsv);
+      $("quizNext").addEventListener("click", nextQuiz);
+      document.querySelectorAll(".nav-links a, .hero-actions a").forEach((link) => link.addEventListener("click", (event) => {
+        const target = document.querySelector(link.getAttribute("href"));
+        if (target) { event.preventDefault(); target.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); history.replaceState(null, "", link.getAttribute("href")); }
+      }));
+      window.addEventListener("resize", () => document.querySelectorAll(".js-plotly-plot").forEach((plot) => Plotly.Plots.resize(plot)), { passive: true });
       updateFormulas();
+      renderQuiz();
+      initCanvas();
       render();
-      window.addEventListener("load", () => {
-        updateFormulas();
-        scheduleRender();
-      }, { once: true });
+      window.addEventListener("load", () => { katex(); scheduleRender(); }, { once: true });
     })();
   </script>
 </body>
