@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Simulador interactivo de señales continuas y caracterizacion de sistemas, Fase 1 APS UTN-FICA.">
+  <title>Simulador APS · Fase 1 | UTN-FICA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: "class" };
+  </script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html:not(.dark) { color-scheme: light; }
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .tab-button[aria-selected="true"] { color: #38bdf8; border-color: #38bdf8; background: rgba(14,165,233,.10); }
+    html:not(.dark) .tab-button[aria-selected="true"] { color: #0369a1; background: #e0f2fe; }
+    input[type="range"] { accent-color: #0ea5e9; }
+    .plot { min-height: 310px; }
+    .math-card .katex-display { overflow-x: auto; overflow-y: hidden; padding: .2rem 0; }
+    .table-scroll { overflow-x: auto; }
+    .control-card { min-width: 0; }
+    html.light body { background: #f8fafc !important; color: #0f172a !important; }
+    html.light header, html.light article, html.light .bg-slate-900,
+    html.light .bg-slate-900\/95 { background-color: #ffffff !important; }
+    html.light .border-slate-800, html.light .border-slate-700 { border-color: #dbe3eb !important; }
+    html.light .text-slate-100, html.light .text-slate-200, html.light .text-slate-300 { color: #1e293b !important; }
+    html.light .text-slate-400, html.light .text-slate-500 { color: #64748b !important; }
+    html.light select { background-color: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+    html.light .tab-button { color: #475569; }
+    html.light footer { border-color: #dbe3eb; color: #64748b; }
+    @media (max-width: 640px) { .plot { min-height: 270px; } }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 transition-colors dark:bg-slate-950 dark:text-slate-100">
+  <header class="border-b border-slate-800 bg-slate-900/95 dark:border-slate-800 dark:bg-slate-900/95">
+    <div class="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+      <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[.18em] text-sky-400">Universidad Técnica del Norte · FICA</p>
+          <h1 class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">Análisis y Procesamiento de Señales</h1>
+          <p class="mt-1 text-sm text-slate-400">Simulador interactivo · Fase 1 · Señales continuas y sistemas</p>
+          <p class="mt-2 text-xs text-slate-500">Docente: Ing. Henry Farinango, MSc. · Ingeniería en Telecomunicaciones</p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-3 lg:min-w-[550px]">
+          <label class="text-xs font-medium text-slate-400">Modelo de x₂(t)
+            <select id="x2Mode" class="mt-1 block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">
+              <option value="A">Modo A · Rampa acotada</option>
+              <option value="B">Modo B · Triángulo simétrico</option>
+            </select>
+          </label>
+          <label class="text-xs font-medium text-slate-400">Tema
+            <select id="themeMode" class="mt-1 block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">
+              <option value="dark">Modo oscuro · Laboratorio</option>
+              <option value="light">Modo claro · Publicación IEEE</option>
+            </select>
+          </label>
+          <div class="flex items-end">
+            <button id="resetButton" type="button" class="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:border-sky-400 hover:text-sky-300">Restablecer parámetros</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+    <section aria-label="Indicadores en tiempo real" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4 dark:border-slate-800 dark:bg-slate-900">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Error máximo vs. teoría</p>
+        <p id="kpiError" class="mt-2 text-2xl font-bold text-emerald-400">0.0000 %</p>
+        <p class="mt-1 text-xs text-slate-500">Operaciones sobre muestras de 2 ms</p>
+      </article>
+      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4 dark:border-slate-800 dark:bg-slate-900">
+        <label for="activeSignal" class="text-xs font-semibold uppercase tracking-wide text-slate-400">Energía de señal activa</label>
+        <select id="activeSignal" class="mt-1 block w-full rounded bg-transparent text-xs text-slate-300 focus:outline-none">
+          <option value="x1">x₁(t)</option><option value="x2">x₂(t)</option>
+          <option value="sum">x₁(t) + x₂(t)</option><option value="product">x₁(t) · x₂(t)</option>
+        </select>
+        <p id="kpiEnergy" class="mt-1 text-2xl font-bold text-sky-400">1.0000 J</p>
+      </article>
+      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4 dark:border-slate-800 dark:bg-slate-900">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Linealidad</p>
+        <p class="mt-2"><span class="rounded-full bg-emerald-500/15 px-2.5 py-1 text-sm font-bold text-emerald-400">LINEAL</span></p>
+        <p class="mt-2 text-xs text-slate-500">Residuo por superposición ≈ 0</p>
+      </article>
+      <article class="rounded-xl border border-slate-800 bg-slate-900 p-4 dark:border-slate-800 dark:bg-slate-900">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Invarianza temporal</p>
+        <p class="mt-2"><span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-sm font-bold text-amber-400">VARIANTE EN EL TIEMPO</span></p>
+        <p id="causalKpi" class="mt-2 text-xs font-semibold text-rose-400">CAUSALIDAD: NO CAUSAL</p>
+      </article>
+    </section>
+
+    <nav class="mt-6 flex gap-2 overflow-x-auto border-b border-slate-800 pb-2" role="tablist" aria-label="Secciones del simulador">
+      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="true" aria-controls="panel-base" data-tab="panel-base">1 · Señales base</button>
+      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="false" aria-controls="panel-operations" data-tab="panel-operations">2 · Operaciones</button>
+      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="false" aria-controls="panel-transforms" data-tab="panel-transforms">3 · Transformaciones</button>
+      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="false" aria-controls="panel-system" data-tab="panel-system">4 · Sistema H[x]</button>
+      <button class="tab-button whitespace-nowrap rounded-t-lg border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-100" role="tab" aria-selected="false" aria-controls="panel-proof" data-tab="panel-proof">5 · Demostración y rúbrica</button>
+    </nav>
+
+    <section id="panel-base" class="panel active pt-5" role="tabpanel">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div><h2 class="text-lg font-bold">Señales continuas base</h2><p class="text-sm text-slate-400">Modelos y métricas calculados en el modo global seleccionado.</p></div>
+        <button id="parityButton" type="button" aria-pressed="false" class="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold hover:border-sky-500">Mostrar descomposición par/impar</button>
+      </div>
+      <div class="grid gap-4 xl:grid-cols-2">
+        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+          <div class="flex items-center justify-between"><h3 class="font-semibold">Pulso rectangular x₁(t)</h3><button class="download-button text-xs text-sky-400 hover:text-sky-300" data-plot="plot-x1">Descargar PNG</button></div>
+          <div id="plot-x1" class="plot" aria-label="Gráfica interactiva del pulso rectangular"></div>
+          <p class="text-sm text-slate-400">\(x_1(t)=\mu(t)-\mu(t-1)\), con soporte \(0\le t\le1\).</p>
+        </article>
+        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+          <div class="flex items-center justify-between"><h3 class="font-semibold">Señal x₂(t)</h3><button class="download-button text-xs text-sky-400 hover:text-sky-300" data-plot="plot-x2">Descargar PNG</button></div>
+          <div id="plot-x2" class="plot" aria-label="Gráfica interactiva de x2"></div>
+          <p id="x2Formula" class="text-sm text-slate-400"></p>
+        </article>
+      </div>
+      <div class="mt-4 grid gap-4 xl:grid-cols-2">
+        <article class="rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <h3 class="font-semibold">Saltos laterales \(D_{t_0}=X(t_0^+)-X(t_0^-)\)</h3>
+          <div id="discontinuityTable" class="table-scroll mt-3"></div>
+        </article>
+        <article class="rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <h3 class="font-semibold">Energía numérica y analítica</h3>
+          <div id="energyTable" class="table-scroll mt-3"></div>
+          <div id="plot-parity" class="plot mt-3 hidden" aria-label="Descomposición par e impar"></div>
+          <button class="download-button mt-2 hidden text-xs text-sky-400 hover:text-sky-300" data-plot="plot-parity">Descargar PNG de paridad</button>
+        </article>
+      </div>
+    </section>
+
+    <section id="panel-operations" class="panel pt-5" role="tabpanel">
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div><h2 class="text-lg font-bold">Operaciones algebraicas</h2><p class="text-sm text-slate-400">Suma y producto punto a punto, con comparación analítica.</p></div>
+        <label class="flex items-center gap-2 text-sm text-slate-300"><input id="showReferences" type="checkbox" class="accent-sky-500" checked>Superponer señales originales</label>
+      </div>
+      <div class="grid gap-4 xl:grid-cols-2">
+        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+          <div class="flex items-center justify-between"><h3 class="font-semibold">Suma \(s(t)=x_1(t)+x_2(t)\)</h3><button class="download-button text-xs text-sky-400" data-plot="plot-sum">Descargar PNG</button></div>
+          <div id="plot-sum" class="plot" aria-label="Gráfica de la suma"></div>
+          <p class="text-sm text-slate-400">Definición directa: \(s(t)=\mu(t)-\mu(t-1)+x_2(t)\).</p>
+        </article>
+        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+          <div class="flex items-center justify-between"><h3 class="font-semibold">Producto \(p(t)=x_1(t)x_2(t)\)</h3><button class="download-button text-xs text-sky-400" data-plot="plot-product">Descargar PNG</button></div>
+          <div id="plot-product" class="plot" aria-label="Gráfica del producto"></div>
+          <p id="productFormula" class="text-sm text-slate-400"></p>
+        </article>
+      </div>
+      <p class="mt-4 rounded-lg border border-slate-800 bg-slate-900 p-3 text-sm text-slate-300">Error máximo frente a la expresión por tramos: <strong id="operationError" class="text-emerald-400">0.0000 %</strong>. El cálculo se realiza con las mismas muestras temporales explícitas.</p>
+    </section>
+
+    <section id="panel-transforms" class="panel pt-5" role="tabpanel">
+      <div class="mb-4"><h2 class="text-lg font-bold">Transformaciones temporales</h2><p class="text-sm text-slate-400">La referencia punteada representa la señal original.</p></div>
+      <div class="mb-4 grid gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-2">
+        <div class="control-card">
+          <label for="scaleSlider" class="flex justify-between text-sm font-semibold"><span>Escala temporal \(a\)</span><output id="scaleValue">2.00</output></label>
+          <input id="scaleSlider" class="mt-3 w-full" type="range" min="0.25" max="4" step="0.05" value="2" aria-label="Factor de escala temporal">
+          <button id="scaleGuide" class="mt-2 rounded border border-slate-700 px-2 py-1 text-xs text-sky-300 hover:border-sky-500">Valor de la guía: a = 2</button>
+        </div>
+        <div class="control-card">
+          <label for="tauTransform" class="flex justify-between text-sm font-semibold"><span>Desplazamiento \(\tau\)</span><output id="tauTransformValue">1.00 s</output></label>
+          <input id="tauTransform" class="mt-3 w-full" type="range" min="-2" max="3" step="0.05" value="1" aria-label="Desplazamiento de tiempo">
+          <button id="tauGuide" class="mt-2 rounded border border-slate-700 px-2 py-1 text-xs text-sky-300 hover:border-sky-500">Valor de la guía: τ = 1 s</button>
+        </div>
+      </div>
+      <div class="grid gap-4 xl:grid-cols-2">
+        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+          <div class="flex items-center justify-between"><h3 class="font-semibold">Compresión / expansión \(x_1(at)\)</h3><button class="download-button text-xs text-sky-400" data-plot="plot-scale">Descargar PNG</button></div>
+          <div id="plot-scale" class="plot" aria-label="Transformación de escala"></div>
+          <p class="text-sm text-slate-400">Para \(a&gt;1\), el soporte se comprime a \([0,1/a]\).</p>
+        </article>
+        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+          <div class="flex items-center justify-between"><h3 class="font-semibold">Adelanto / retardo \(x_2(t-\tau)\)</h3><button class="download-button text-xs text-sky-400" data-plot="plot-shift">Descargar PNG</button></div>
+          <div id="plot-shift" class="plot" aria-label="Transformación de desplazamiento"></div>
+          <p class="text-sm text-slate-400">\(\tau&gt;0\) desplaza la señal hacia la derecha (retardo).</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="panel-system" class="panel pt-5" role="tabpanel">
+      <div class="mb-4"><h2 class="text-lg font-bold">Caracterización de \(H[x](t)=t\,x(t+t_0)\)</h2><p class="text-sm text-slate-400">Las curvas y veredictos se actualizan con los parámetros.</p></div>
+      <div class="mb-4 grid gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 md:grid-cols-2">
+        <label class="text-sm font-semibold">Señal de prueba para causalidad e invarianza
+          <select id="systemSignal" class="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-normal text-slate-100">
+            <option value="x1">x₁(t) · Pulso rectangular</option><option value="x2">x₂(t) · Señal seleccionada</option>
+          </select>
+        </label>
+        <div>
+          <label for="t0Causal" class="flex justify-between text-sm font-semibold"><span>Desplazamiento \(t_0\) · causalidad</span><output id="t0CausalValue">1.00 s</output></label>
+          <input id="t0Causal" class="mt-3 w-full" type="range" min="-2" max="2" step="0.05" value="1" aria-label="Desplazamiento para causalidad">
+          <p id="causalVerdict" class="mt-1 text-sm font-bold text-rose-400">NO CAUSAL: depende del futuro</p>
+        </div>
+      </div>
+      <div class="grid gap-4 xl:grid-cols-2">
+        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+          <div class="flex items-center justify-between"><h3 class="font-semibold">Causalidad</h3><button class="download-button text-xs text-sky-400" data-plot="plot-causal">Descargar PNG</button></div>
+          <div id="plot-causal" class="plot" aria-label="Respuesta del sistema y región de anticipación"></div>
+          <p class="text-sm text-slate-400">Si \(t_0&gt;0\), \(x(t+t_0)\) consulta instantes futuros.</p>
+        </article>
+        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4">
+          <div class="flex items-center justify-between"><h3 class="font-semibold">Linealidad por superposición</h3><button class="download-button text-xs text-sky-400" data-plot="plot-linearity">Descargar PNG</button></div>
+          <div id="plot-linearity" class="plot" aria-label="Comparación de superposición"></div>
+          <div class="mt-2 flex items-center justify-between"><h4 class="text-sm font-semibold text-slate-300">Residuo absoluto de superposición</h4><button class="download-button text-xs text-sky-400" data-plot="plot-residual">Descargar PNG</button></div>
+          <div id="plot-residual" class="plot" aria-label="Gráfica del error residual de linealidad"></div>
+          <div class="mt-2 flex gap-5 text-sm">
+            <label class="flex-1">a = <output id="alphaValue">1.00</output><input id="alphaSlider" class="block w-full" type="range" min="-3" max="3" step="0.1" value="1" aria-label="Coeficiente a de linealidad"></label>
+            <label class="flex-1">b = <output id="betaValue">1.00</output><input id="betaSlider" class="block w-full" type="range" min="-3" max="3" step="0.1" value="1" aria-label="Coeficiente b de linealidad"></label>
+          </div>
+          <p class="mt-2 text-xs text-slate-400">Error máximo del residuo: <strong id="linearityError" class="text-emerald-400">0.0000</strong></p>
+        </article>
+        <article class="rounded-xl border border-slate-800 bg-slate-900 p-3 sm:p-4 xl:col-span-2">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h3 class="font-semibold">Invarianza temporal</h3>
+            <button class="download-button text-xs text-sky-400" data-plot="plot-invariance">Descargar PNG</button>
+          </div>
+          <div class="my-3 grid gap-4 sm:grid-cols-2">
+            <label class="text-sm">Desplazamiento de entrada \(\tau\): <output id="tauSystemValue">1.00 s</output><input id="tauSystem" class="block w-full" type="range" min="-2" max="2" step="0.05" value="1" aria-label="Desplazamiento para invarianza"></label>
+            <label class="text-sm">Desplazamiento del sistema \(t_0\): <output id="t0InvariantValue">0.50 s</output><input id="t0Invariant" class="block w-full" type="range" min="-2" max="2" step="0.05" value="0.5" aria-label="t0 para invarianza"></label>
+          </div>
+          <div id="plot-invariance" class="plot" aria-label="Comparación de invariancia temporal"></div>
+          <p class="text-sm text-slate-400">RMS de discrepancia: <strong id="invarianceRms" class="text-amber-400">0.0000</strong></p>
+        </article>
+      </div>
+    </section>
+
+    <section id="panel-proof" class="panel pt-5">
+      <div class="mb-4"><h2 class="text-lg font-bold">Demostración formal y resumen técnico</h2><p class="text-sm text-slate-400">Desarrollo analítico de referencia para el informe.</p></div>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <h3 class="font-semibold text-sky-300">Modelos por tramos</h3>
+          <p class="mt-3">Pulso rectangular:</p>
+          <p>\[x_1(t)=\begin{cases}1,&0\le t\le1\\0,&\text{en otro caso}\end{cases}\]</p>
+          <p id="proofX2" class="mt-3"></p>
+          <p class="mt-3">Operaciones: \(s(t)=x_1(t)+x_2(t)\), \(p(t)=x_1(t)x_2(t)\), \(x_1(at)\) y \(x_2(t-\tau)\).</p>
+        </article>
+        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <h3 class="font-semibold text-sky-300">Causalidad</h3>
+          <p class="mt-3">\[y(t)=t\,x(t+t_0)\]</p>
+          <p>Para \(t_0&gt;0\), la respuesta en \(t\) depende de \(x\) en \(t+t_0&gt;t\). Con una entrada causal que empieza en \(0\), puede haber salida en \(-t_0\le t&lt;0\); por tanto, \(H\) no es causal. Si \(t_0\le0\), solo intervienen valores presentes o pasados y el sistema es causal.</p>
+        </article>
+        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <h3 class="font-semibold text-sky-300">Linealidad</h3>
+          <p class="mt-3">\[\begin{aligned}H[a x_1+b x_2](t)&=t[a x_1(t+t_0)+b x_2(t+t_0)]\\&=a\,t x_1(t+t_0)+b\,t x_2(t+t_0)\\&=aH[x_1](t)+bH[x_2](t).\end{aligned}\]</p>
+          <p>El operador es lineal para escalares constantes \(a,b\); el residuo numérico debe ser cero salvo redondeo.</p>
+        </article>
+        <article class="math-card rounded-xl border border-slate-800 bg-slate-900 p-4">
+          <h3 class="font-semibold text-sky-300">Varianza en el tiempo</h3>
+          <p class="mt-3">\[\begin{aligned}H[x(t-\tau)]&=t\,x(t-\tau+t_0),\\y(t-\tau)&=(t-\tau)x(t-\tau+t_0),\\H[x(t-\tau)]-y(t-\tau)&=\tau\,x(t-\tau+t_0).\end{aligned}\]</p>
+          <p>Para \(\tau\ne0\) y una entrada no nula en el intervalo considerado, las salidas difieren: el sistema es variante en el tiempo.</p>
+        </article>
+      </div>
+      <article class="mt-4 rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <h3 class="font-semibold">Criterios y conclusiones de simulación</h3>
+        <div class="table-scroll mt-3">
+          <table class="w-full min-w-[600px] text-left text-sm">
+            <thead class="border-b border-slate-700 text-xs uppercase text-slate-400"><tr><th class="p-2">Magnitud</th><th class="p-2">Resultado analítico</th><th class="p-2">Resultado simulado</th><th class="p-2">Criterio</th></tr></thead>
+            <tbody class="divide-y divide-slate-800 text-slate-300">
+              <tr><td class="p-2">Error de operaciones</td><td class="p-2">0</td><td id="proofError" class="p-2">0.0000 %</td><td class="p-2 text-emerald-400">&lt; 2 %</td></tr>
+              <tr><td class="p-2">Linealidad</td><td class="p-2">Residuo = 0</td><td id="proofLinearity" class="p-2">0.0000</td><td class="p-2 text-emerald-400">Superposición</td></tr>
+              <tr><td class="p-2">Causalidad</td><td class="p-2">Depende del signo de t₀</td><td id="proofCausality" class="p-2">NO CAUSAL</td><td class="p-2">t₀ ≤ 0: causal</td></tr>
+              <tr><td class="p-2">Invarianza</td><td class="p-2">Discrepancia = τx(·)</td><td class="p-2">Variante en el tiempo</td><td class="p-2">τ ≠ 0</td></tr>
+              <tr><td class="p-2">Muestreo</td><td class="p-2">dt = 0.002 s</td><td class="p-2">Flancos insertados ±1 μs</td><td class="p-2">Malla explícita</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-sm leading-6 text-slate-400">Conclusión: \(H[x](t)=t\,x(t+t_0)\) es lineal y variante en el tiempo; su causalidad depende de \(t_0\). Las energías y discontinuidades mostradas se recalculan para el modelo elegido. La integral numérica usa regla trapezoidal y una malla uniforme suplementada en los flancos.</p>
+      </article>
+    </section>
+    <footer class="mt-8 border-t border-slate-800 py-5 text-center text-xs text-slate-500">Simulación educativa local · Las bibliotecas de visualización y ecuaciones se cargan desde CDN.</footer>
+  </main>
+
+  <script>
+    "use strict";
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const EPS = 1e-6;
+      const DT = 0.002;
+      const T_MIN = -2;
+      const T_MAX = 4;
+      const COLORS = { blue: "#38bdf8", orange: "#fb923c", green: "#34d399", purple: "#c084fc", red: "#fb7185", gray: "#94a3b8" };
+      let renderQueued = false;
+      let parityVisible = false;
+      let plotTime = [];
+
+      function currentMode() { return $("x2Mode").value; }
+      function x1(t) { return t >= 0 && t <= 1 ? 1 : 0; }
+      function x2(t) {
+        if (currentMode() === "A") return t >= 0 && t <= 2 ? t : 0;
+        if (t >= 0 && t <= 1) return t;
+        if (t > 1 && t <= 2) return 2 - t;
+        return 0;
+      }
+      function selectedSignal() { return $("systemSignal").value === "x1" ? x1 : x2; }
+      function makeTime(events) {
+        const values = [];
+        for (let i = 0; i <= Math.round((T_MAX - T_MIN) / DT); i++) values.push(T_MIN + i * DT);
+        events.forEach((point) => {
+          if (point >= T_MIN && point <= T_MAX) {
+            values.push(point - EPS, point + EPS);
+          }
+        });
+        values.sort((a, b) => a - b);
+        return values.filter((v, i) => i === 0 || v !== values[i - 1]);
+      }
+      function range(time, fn) { return time.map(fn); }
+      function energy(time, values) {
+        let total = 0;
+        for (let i = 1; i < time.length; i++) {
+          total += (time[i] - time[i - 1]) * (values[i] * values[i] + values[i - 1] * values[i - 1]) / 2;
+        }
+        return total;
+      }
+      function maxAbs(values) { return values.reduce((m, value) => Math.max(m, Math.abs(value)), 0); }
+      function rms(time, values) {
+        let integral = 0;
+        for (let i = 1; i < time.length; i++) {
+          integral += (time[i] - time[i - 1]) * (values[i] * values[i] + values[i - 1] * values[i - 1]) / 2;
+        }
+        return Math.sqrt(integral / Math.max(time[time.length - 1] - time[0], EPS));
+      }
+      function fmt(value, digits) { return Number(value).toFixed(digits === undefined ? 4 : digits); }
+      function layout(title, yTitle) {
+        const light = document.documentElement.classList.contains("light");
+        const foreground = light ? "#1e293b" : "#e2e8f0";
+        const grid = light ? "#dbe3eb" : "#334155";
+        const paper = light ? "#ffffff" : "#0f172a";
+        const plot = light ? "#ffffff" : "#0f172a";
+        return {
+          title: { text: title, font: { size: 14, color: foreground } },
+          paper_bgcolor: paper, plot_bgcolor: plot, font: { color: foreground, family: "Inter, sans-serif", size: 11 },
+          margin: { l: 54, r: 18, t: 42, b: 48 }, hovermode: "x unified",
+          xaxis: { title: "Tiempo t [s]", range: [T_MIN, T_MAX], gridcolor: grid, zeroline: true, zerolinecolor: foreground, minor: { showgrid: true, gridcolor: grid, dtick: 0.5 } },
+          yaxis: { title: yTitle || "Amplitud", gridcolor: grid, zeroline: true, zerolinecolor: foreground },
+          legend: { orientation: "h", y: -0.24, x: 0 }, showlegend: true
+        };
+      }
+      const plotConfig = {
+        responsive: true, displaylogo: false, scrollZoom: true,
+        toImageButtonOptions: { format: "png", filename: "aps_fase1", width: 1600, height: 900, scale: 3 }
+      };
+      function trace(name, y, color, extra) {
+        return Object.assign({ x: plotTime, y, name, type: "scatter", mode: "lines", line: { color, width: 2 } }, extra || {});
+      }
+      function updatePlot(id, traces, chartLayout) {
+        const element = $(id);
+        if (!element || !window.Plotly) return;
+        Plotly.react(element, traces, chartLayout, plotConfig);
+      }
+      function downloadPlot(id) {
+        const element = $(id);
+        if (!element || !window.Plotly || !element.data) return;
+        Plotly.downloadImage(element, { format: "png", filename: id + "_aps_fase1", width: 1600, height: 900, scale: 3 });
+      }
+      function buildTable(headers, rows) {
+        return '<table class="min-w-full text-left text-xs"><thead class="border-b border-slate-700 text-slate-400"><tr>' +
+          headers.map((header) => '<th class="whitespace-nowrap px-3 py-2">' + header + "</th>").join("") +
+          "</tr></thead><tbody class=\"divide-y divide-slate-800 text-slate-300\">" +
+          rows.map((row) => "<tr>" + row.map((cell) => '<td class="whitespace-nowrap px-3 py-2">' + cell + "</td>").join("") + "</tr>").join("") +
+          "</tbody></table>";
+      }
+      function updateTables(time, values) {
+        const critical = [0, 0.5, 1, 2, 3];
+        const signalFunctions = [
+          ["x₁(t)", x1], ["x₂(t)", x2],
+          ["Suma", (q) => x1(q) + x2(q)],
+          ["Producto", (q) => x1(q) * x2(q)],
+          ["x₁(2t)", (q) => x1(2 * q)],
+          ["x₂(t−1)", (q) => x2(q - 1)]
+        ];
+        const dRows = signalFunctions.map(([name, fn]) => [name].concat(critical.map((at) => {
+          const left = 2 * fn(at - EPS) - fn(at - 2 * EPS);
+          const right = 2 * fn(at + EPS) - fn(at + 2 * EPS);
+          return fmt(right - left, 4);
+        })));
+        $("discontinuityTable").innerHTML = buildTable(["Señal \\ t₀ [s]"].concat(critical.map((at) => at.toFixed(1))), dRows);
+
+        const exactX2 = currentMode() === "A" ? 8 / 3 : 2 / 3;
+        const exactSum = currentMode() === "A" ? 14 / 3 : 8 / 3;
+        const energyRows = [
+          ["x₁(t)", 1, energy(time, values.x1)],
+          ["x₂(t)", exactX2, energy(time, values.x2)],
+          ["x₁ + x₂", exactSum, energy(time, values.sum)],
+          ["x₁ · x₂", 1 / 3, energy(time, values.product)],
+          ["x₁(2t)", 0.5, energy(time, values.scaled)],
+          ["x₂(t−1)", exactX2, energy(time, values.shifted)]
+        ].map((row) => [row[0], fmt(row[1]), fmt(row[2]), fmt(Math.abs(row[2] - row[1]) / Math.max(row[1], EPS) * 100, 5) + "%"]);
+        $("energyTable").innerHTML = buildTable(["Señal", "E analítica [J]", "E numérica [J]", "Error"], energyRows);
+      }
+
+      function render() {
+        renderQueued = false;
+        const a = Number($("scaleSlider").value);
+        const tau = Number($("tauTransform").value);
+        const t0 = Number($("t0Causal").value);
+        const tauSystem = Number($("tauSystem").value);
+        const t0Invariant = Number($("t0Invariant").value);
+        const signalBreaks = [0, 1, 2];
+        const systemBreaks = signalBreaks.map((point) => point - t0);
+        const invariantBreaks = signalBreaks.map((point) => point + tauSystem - t0Invariant);
+        const time = makeTime([0, 0.5, 1, 2, 3, 1 / a, tau, tau + 1, tau + 2]
+          .concat(systemBreaks, invariantBreaks));
+        plotTime = time;
+        const xx1 = range(time, x1);
+        const xx2 = range(time, x2);
+        const sum = xx1.map((v, i) => v + xx2[i]);
+        const product = xx1.map((v, i) => v * xx2[i]);
+        const scaled = range(time, (t) => x1(a * t));
+        const shifted = range(time, (t) => x2(t - tau));
+        const values = { x1: xx1, x2: xx2, sum, product, scaled, shifted };
+
+        const mode = currentMode();
+        const exactX2 = mode === "A" ? 8 / 3 : 2 / 3;
+        const exactSum = mode === "A" ? 14 / 3 : 8 / 3;
+        const energyExact = { x1: 1, x2: exactX2, sum: exactSum, product: 1 / 3 };
+        const activeEnergy = energy(time, values[$("activeSignal").value]);
+        $("kpiEnergy").textContent = fmt(activeEnergy) + " J";
+        const operationMax = maxAbs(sum.map((v, i) => v - (x1(time[i]) + x2(time[i]))).concat(
+          product.map((v, i) => v - x1(time[i]) * x2(time[i]))
+        ));
+        const operationPct = operationMax / Math.max(maxAbs(sum), maxAbs(product), 1) * 100;
+        $("kpiError").textContent = fmt(operationPct, 4) + " %";
+        $("operationError").textContent = fmt(operationPct, 4) + " %";
+        $("proofError").textContent = fmt(operationPct, 4) + " %";
+
+        const base1Traces = [trace("x₁(t)", xx1, COLORS.blue)];
+        const base2Traces = [trace("x₂(t)", xx2, COLORS.orange)];
+        if (parityVisible) {
+          base1Traces.push(trace("x₁ par", range(time, (t) => (x1(t) + x1(-t)) / 2), COLORS.green));
+          base1Traces.push(trace("x₁ impar", range(time, (t) => (x1(t) - x1(-t)) / 2), COLORS.purple));
+          base2Traces.push(trace("x₂ par", range(time, (t) => (x2(t) + x2(-t)) / 2), COLORS.green));
+          base2Traces.push(trace("x₂ impar", range(time, (t) => (x2(t) - x2(-t)) / 2), COLORS.purple));
+        }
+        updatePlot("plot-x1", base1Traces, layout(parityVisible ? "x₁(t) y componentes par/impar" : "Pulso rectangular x₁(t)"));
+        updatePlot("plot-x2", base2Traces, layout(parityVisible ? "x₂(t) y componentes par/impar · modo " + mode : "Señal x₂(t) · modo " + mode));
+
+        const referenceTraces = $("showReferences").checked ? [
+          trace("x₁(t)", xx1, COLORS.blue, { line: { color: COLORS.blue, width: 1, dash: "dot" }, opacity: 0.55 }),
+          trace("x₂(t)", xx2, COLORS.orange, { line: { color: COLORS.orange, width: 1, dash: "dot" }, opacity: 0.55 })
+        ] : [];
+        updatePlot("plot-sum", referenceTraces.concat([trace("x₁+x₂", sum, COLORS.green)]), layout("Suma temporal"));
+        updatePlot("plot-product", referenceTraces.concat([trace("x₁·x₂", product, COLORS.purple)]), layout("Producto temporal"));
+
+        $("scaleValue").textContent = fmt(a, 2);
+        $("tauTransformValue").textContent = fmt(tau, 2) + " s";
+        updatePlot("plot-scale", [
+          trace("Original x₁(t)", xx1, COLORS.blue, { line: { color: COLORS.blue, width: 1.5, dash: "dot" } }),
+          trace("Transformada x₁(at)", scaled, COLORS.red)
+        ], layout("Escalamiento temporal · a = " + fmt(a, 2)));
+        updatePlot("plot-shift", [
+          trace("Original x₂(t)", xx2, COLORS.orange, { line: { color: COLORS.orange, width: 1.5, dash: "dot" } }),
+          trace("Transformada x₂(t−τ)", shifted, COLORS.purple)
+        ], layout("Desplazamiento temporal · τ = " + fmt(tau, 2) + " s"));
+
+        const signal = selectedSignal();
+        const causalY = range(time, (t) => t * signal(t + t0));
+        $("t0CausalValue").textContent = fmt(t0, 2) + " s";
+        const causal = t0 <= 0;
+        $("causalVerdict").textContent = causal ? "CAUSAL: depende del presente/pasado" : "NO CAUSAL: depende del futuro";
+        $("causalVerdict").className = "mt-1 text-sm font-bold " + (causal ? "text-emerald-400" : "text-rose-400");
+        $("causalKpi").textContent = "CAUSALIDAD: " + (causal ? "CAUSAL" : "NO CAUSAL");
+        $("causalKpi").className = "mt-2 text-xs font-semibold " + (causal ? "text-emerald-400" : "text-rose-400");
+        $("proofCausality").textContent = causal ? "CAUSAL" : "NO CAUSAL";
+        const causalLayout = layout("H[x](t) = t x(t+t₀) · t₀ = " + fmt(t0, 2));
+        if (t0 > 0) {
+          causalLayout.shapes = [{ type: "rect", xref: "x", yref: "paper", x0: -t0, x1: 0, y0: 0, y1: 1, fillcolor: "rgba(244,63,94,.16)", line: { width: 0 } }];
+          causalLayout.annotations = [{ x: -t0 / 2, y: 0.95, xref: "x", yref: "paper", text: "región anticipada", showarrow: false, font: { color: COLORS.red, size: 10 } }];
+        }
+        updatePlot("plot-causal", [trace("y(t)", causalY, causal ? COLORS.green : COLORS.red)], causalLayout);
+
+        const alpha = Number($("alphaSlider").value);
+        const beta = Number($("betaSlider").value);
+        $("alphaValue").textContent = fmt(alpha, 1);
+        $("betaValue").textContent = fmt(beta, 1);
+        const combined = range(time, (t) => t * (alpha * x1(t + t0) + beta * x2(t + t0)));
+        const superposed = range(time, (t) => alpha * t * x1(t + t0) + beta * t * x2(t + t0));
+        const residual = combined.map((v, i) => Math.abs(v - superposed[i]));
+        const linearError = maxAbs(residual);
+        $("linearityError").textContent = linearError.toExponential(2);
+        $("proofLinearity").textContent = linearError.toExponential(2);
+        updatePlot("plot-linearity", [
+          trace("H[ax₁+bx₂]", combined, COLORS.blue),
+          trace("aH[x₁]+bH[x₂]", superposed, COLORS.orange, { line: { color: COLORS.orange, width: 1.8, dash: "dash" } })
+        ], layout("Superposición · a = " + fmt(alpha, 1) + ", b = " + fmt(beta, 1)));
+        updatePlot("plot-residual", [
+          trace("|e(t)|", residual, COLORS.purple)
+        ], layout("Residuo absoluto · máximo = " + linearError.toExponential(2)));
+
+        $("tauSystemValue").textContent = fmt(tauSystem, 2) + " s";
+        $("t0InvariantValue").textContent = fmt(t0Invariant, 2) + " s";
+        const yd = range(time, (t) => t * signal(t - tauSystem + t0Invariant));
+        const shiftedY = range(time, (t) => (t - tauSystem) * signal(t - tauSystem + t0Invariant));
+        const diff = yd.map((v, i) => v - shiftedY[i]);
+        $("invarianceRms").textContent = fmt(rms(time, diff), 4);
+        const invarianceLayout = layout("Comparación temporal · τ = " + fmt(tauSystem, 2) + " s, t₀ = " + fmt(t0Invariant, 2));
+        invarianceLayout.shapes = [];
+        updatePlot("plot-invariance", [
+          trace("H[x(t−τ)]", yd, COLORS.red),
+          trace("y(t−τ)", shiftedY, COLORS.blue, {
+            line: { color: COLORS.blue, width: 1.8, dash: "dash" },
+            fill: "tonexty", fillcolor: "rgba(251,146,60,.22)"
+          })
+        ], invarianceLayout);
+        if (parityVisible) {
+          $("plot-parity").classList.remove("hidden");
+          document.querySelector('[data-plot="plot-parity"]').classList.remove("hidden");
+          updatePlot("plot-parity", [
+            trace("x₁ par", range(time, (t) => (x1(t) + x1(-t)) / 2), COLORS.green),
+            trace("x₁ impar", range(time, (t) => (x1(t) - x1(-t)) / 2), COLORS.purple),
+            trace("x₂ par", range(time, (t) => (x2(t) + x2(-t)) / 2), COLORS.orange),
+            trace("x₂ impar", range(time, (t) => (x2(t) - x2(-t)) / 2), COLORS.blue)
+          ], layout("Descomposición par e impar"));
+        } else {
+          $("plot-parity").classList.add("hidden");
+          document.querySelector('[data-plot="plot-parity"]').classList.add("hidden");
+        }
+        updateTables(time, values);
+      }
+      function scheduleRender() {
+        if (renderQueued) return;
+        renderQueued = true;
+        window.requestAnimationFrame(render);
+      }
+      function setTheme(theme) {
+        const light = theme === "light";
+        document.documentElement.classList.toggle("dark", !light);
+        document.documentElement.classList.toggle("light", light);
+        document.body.className = light
+          ? "min-h-screen bg-slate-50 text-slate-900 transition-colors"
+          : "min-h-screen bg-slate-950 text-slate-100 transition-colors";
+        document.querySelectorAll("header, article, .math-card, .control-card, #panel-proof > article, #panel-base > div > article, #panel-operations > p, #panel-transforms > div, #panel-system > div").forEach((element) => {
+          element.classList.toggle("bg-white", light);
+          element.classList.toggle("border-slate-200", light);
+          element.classList.toggle("bg-slate-900", !light);
+          element.classList.toggle("border-slate-800", !light);
+        });
+        document.querySelectorAll("p, h1, h2, h3, label, td, th").forEach((element) => {
+          if (element.classList.contains("text-slate-400") || element.classList.contains("text-slate-300")) {
+            element.classList.toggle("text-slate-600", light);
+          }
+        });
+        scheduleRender();
+      }
+      function updateFormulas() {
+        if (currentMode() === "A") {
+          $("x2Formula").textContent = "Modo A: x₂(t)=t para 0≤t≤2; cero fuera. Pico 2 en t=2 s.";
+          $("productFormula").textContent = "Modo A: p(t)=t para 0≤t≤1; cero fuera.";
+          $("proofX2").textContent = "\\[x_2(t)=\\begin{cases}t,&0\\le t\\le2\\\\0,&\\text{en otro caso}\\end{cases}\\]";
+        } else {
+          $("x2Formula").textContent = "Modo B: x₂(t)=t para 0≤t≤1; x₂(t)=2−t para 1<t≤2; cero fuera. Pico 1 en t=1 s.";
+          $("productFormula").textContent = "Modo B: p(t)=t para 0≤t≤1; cero fuera.";
+          $("proofX2").textContent = "\\[x_2(t)=\\begin{cases}t,&0\\le t\\le1\\\\2-t,&1<t\\le2\\\\0,&\\text{en otro caso}\\end{cases}\\]";
+        }
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "\\[", right: "\\]", display: true },
+              { left: "\\(", right: "\\)", display: false }
+            ],
+            throwOnError: false
+          });
+        }
+      }
+      function reset() {
+        $("x2Mode").value = "A";
+        $("themeMode").value = "dark";
+        $("activeSignal").value = "x1";
+        $("showReferences").checked = true;
+        $("systemSignal").value = "x1";
+        $("scaleSlider").value = "2";
+        $("tauTransform").value = "1";
+        $("t0Causal").value = "1";
+        $("alphaSlider").value = "1";
+        $("betaSlider").value = "1";
+        $("tauSystem").value = "1";
+        $("t0Invariant").value = "0.5";
+        parityVisible = false;
+        $("parityButton").setAttribute("aria-pressed", "false");
+        $("parityButton").textContent = "Mostrar descomposición par/impar";
+        setTheme("dark");
+        updateFormulas();
+        scheduleRender();
+      }
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll(".tab-button").forEach((tab) => tab.setAttribute("aria-selected", String(tab === button)));
+          document.querySelectorAll(".panel").forEach((panel) => panel.classList.toggle("active", panel.id === button.dataset.tab));
+          window.setTimeout(() => {
+            document.querySelectorAll(".plot").forEach((element) => {
+              if (element.data && window.Plotly) Plotly.Plots.resize(element);
+            });
+          }, 0);
+        });
+      });
+      ["x2Mode", "activeSignal", "showReferences", "systemSignal", "scaleSlider", "tauTransform",
+        "t0Causal", "alphaSlider", "betaSlider", "tauSystem", "t0Invariant"].forEach((id) => {
+        $(id).addEventListener("input", () => {
+          if (id === "x2Mode") updateFormulas();
+          scheduleRender();
+        });
+        $(id).addEventListener("change", () => {
+          if (id === "x2Mode") updateFormulas();
+          scheduleRender();
+        });
+      });
+      $("themeMode").addEventListener("change", (event) => setTheme(event.target.value));
+      $("resetButton").addEventListener("click", reset);
+      $("scaleGuide").addEventListener("click", () => { $("scaleSlider").value = "2"; scheduleRender(); });
+      $("tauGuide").addEventListener("click", () => { $("tauTransform").value = "1"; scheduleRender(); });
+      $("parityButton").addEventListener("click", (event) => {
+        parityVisible = !parityVisible;
+        event.currentTarget.setAttribute("aria-pressed", String(parityVisible));
+        event.currentTarget.textContent = parityVisible ? "Ocultar descomposición par/impar" : "Mostrar descomposición par/impar";
+        scheduleRender();
+      });
+      document.querySelectorAll(".download-button").forEach((button) => {
+        button.addEventListener("click", () => downloadPlot(button.dataset.plot));
+      });
+      updateFormulas();
+      render();
+      window.addEventListener("load", () => {
+        updateFormulas();
+        scheduleRender();
+      }, { once: true });
+    })();
+  </script>
+</body>
+</html>
